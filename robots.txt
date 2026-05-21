@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+Disallow: /wp-admin/
+Disallow: /wp-login.php
+Disallow: /wp-includes/
+Disallow: /wp-content/plugins/
+Disallow: /wp-content/cache/
+Disallow: /embeddedio/
+Disallow: /?s=
+Disallow: /xmlrpc.php
+
+Allow: /wp-admin/admin-ajax.php
+
+Sitemap: https://embedded.io.vn/sitemap.xml
