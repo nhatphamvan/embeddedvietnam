@@ -27,6 +27,9 @@ wp-content/themes/*
 # Database - KHÔNG commit
 *.sql
 
+# Local environment secrets
+.env
+
 # WordPress core files lẻ
 xmlrpc.php
 license.txt
