@@ -16,6 +16,20 @@
     Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
 </IfModule>
 
+# ─── WebP: serve .webp when browser supports it and file exists ───────────
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP_ACCEPT} image/webp
+    RewriteCond %{REQUEST_FILENAME} \.(jpe?g|png)$
+    RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI}.webp -f
+    RewriteRule ^(.+)\.(jpe?g|png)$ %{REQUEST_URI}.webp [T=image/webp,L]
+</IfModule>
+<IfModule mod_headers.c>
+    <FilesMatch "\.(jpe?g|png)$">
+        Header append Vary Accept
+    </FilesMatch>
+</IfModule>
+
 # ─── Browser Cache (static assets) ────────────────────────────────────────
 <IfModule mod_expires.c>
     ExpiresActive On
