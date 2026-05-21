@@ -34,5 +34,10 @@ function oceanwp_child_enqueue_styles() {
     );
 }
 
+// Ẩn page-header (title "Home Page") trên front page
+add_filter( 'ocean_display_page_header', function( $display ) {
+    return is_front_page() ? false : $display;
+} );
+
 // Load child theme includes
 require_once get_stylesheet_directory() . '/inc/customizer.php';
