@@ -166,6 +166,21 @@ input[type="submit"]:hover {
     text-align: center;
 }
 
+/* ---------- Homepage Fixes ---------- */
+/* Ẩn page title "Home Page" trên front page */
+.home .page-header,
+.home .oceanwp-page-header-section,
+.home #page-header-wrap {
+    display: none !important;
+}
+
+/* Ẩn thông báo lỗi "Failed to load news" từ widget ngoài */
+.home [class*="news-widget"] .error,
+.home .failed-news,
+.elementor-widget:has(.failed-news) {
+    display: none !important;
+}
+
 /* ---------- Reading Progress Bar ---------- */
 #reading-progress-bar {
     position: fixed;
