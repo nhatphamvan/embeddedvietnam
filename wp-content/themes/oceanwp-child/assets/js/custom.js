@@ -14,4 +14,15 @@
         $('#site-header').toggleClass('scrolled', $(this).scrollTop() > 50);
     });
 
+    // Reading progress bar
+    var $bar = $('#reading-progress-bar');
+    if ( $bar.length ) {
+        $(window).on('scroll', function () {
+            var scrollTop  = $(this).scrollTop();
+            var docHeight  = $(document).height() - $(this).height();
+            var progress   = docHeight > 0 ? ( scrollTop / docHeight ) * 100 : 0;
+            $bar.css('width', progress + '%');
+        });
+    }
+
 })(jQuery);
