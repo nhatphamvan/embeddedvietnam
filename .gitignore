@@ -39,6 +39,10 @@ readme.html
 # Runtime data (thay đổi liên tục, không cần track)
 storage/
 
+# Deploy script — upload thủ công lên server, không commit
+deploy.php
+deploy.log
+
 # Misc
 node_modules/
 vendor/
