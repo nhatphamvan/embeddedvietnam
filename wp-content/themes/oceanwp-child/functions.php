@@ -34,7 +34,14 @@ function oceanwp_child_enqueue_styles() {
     );
 }
 
-// Ẩn page-header (title "Home Page") trên front page
+// Ẩn OceanWP header + page title trên front page (Elementor tự build nav)
+add_action( 'wp', function() {
+    if ( is_front_page() ) {
+        remove_all_actions( 'ocean_top_bar' );
+        remove_all_actions( 'ocean_header' );
+    }
+} );
+
 add_filter( 'ocean_display_page_header', function( $display ) {
     return is_front_page() ? false : $display;
 } );
