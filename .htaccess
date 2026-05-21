@@ -63,12 +63,15 @@ SetEnv noabort 1
 </Files>
 
 SetEnvIf Referer "^https://embedded\.io\.vn" ALLOW_SITE
+SetEnvIf Referer "^http://localhost" ALLOW_SITE
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Block access if the request does not come from your own domain
+    # Block access if the request does not come from allowed domains
     RewriteCond %{HTTP_REFERER} !^https://(www\.)?embedded\.io\.vn [NC]
+    RewriteCond %{HTTP_REFERER} !^http://localhost [NC]
+    RewriteCond %{HTTP_REFERER} !^$ [NC]
     RewriteRule ^embeddedio/ - [F,L]
 </IfModule>
 
