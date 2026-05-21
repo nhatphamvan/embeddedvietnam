@@ -11,12 +11,18 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
-    # Port 3306 intentionally NOT exposed to host — use wpcli container to interact
+    # Port 3306 intentionally NOT exposed — use wpcli container to interact
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
       interval: 5s
       timeout: 5s
       retries: 10
+    mem_limit: 512m
+    command: >
+      --innodb_buffer_pool_size=256M
+      --innodb_log_file_size=64M
+      --max_connections=50
+      --performance_schema=OFF
 
   redis:
     image: redis:7-alpine
@@ -28,6 +34,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    mem_limit: 80m
 
   wordpress:
     image: wordpress:php8.1-apache
@@ -50,6 +57,7 @@ services:
       WP_DEBUG: ${WP_DEBUG:-false}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+    mem_limit: 256m
 
   wpcli:
     image: wordpress:cli-php8.1
@@ -68,6 +76,7 @@ services:
       REDIS_PORT: 6379
     user: "33:33"
     entrypoint: ["tail", "-f", "/dev/null"]
+    mem_limit: 128m
 
 volumes:
   db_data:
