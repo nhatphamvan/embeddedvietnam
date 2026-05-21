@@ -3,7 +3,7 @@
 set -e
 
 SQL_FILE="../he341e3e01_embedded_1779370473.sql"
-LOCAL_URL="http://localhost:8080"
+LOCAL_URL="http://localhost:9000"
 PROD_URL="https://embedded.io.vn"
 
 echo "==> Starting containers..."
