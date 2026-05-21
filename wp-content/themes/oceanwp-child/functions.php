@@ -34,14 +34,16 @@ function oceanwp_child_enqueue_styles() {
     );
 }
 
-// Ẩn OceanWP header + page title trên front page (Elementor tự build nav)
+// Ẩn OceanWP header trên TẤT CẢ page dùng Elementor (Elementor tự build nav)
 add_action( 'wp', function() {
-    if ( is_front_page() ) {
+    global $post;
+    if ( $post && get_post_meta( $post->ID, '_elementor_edit_mode', true ) === 'builder' ) {
         remove_all_actions( 'ocean_top_bar' );
         remove_all_actions( 'ocean_header' );
     }
 } );
 
+// Ẩn page title trên front page
 add_filter( 'ocean_display_page_header', function( $display ) {
     return is_front_page() ? false : $display;
 } );
