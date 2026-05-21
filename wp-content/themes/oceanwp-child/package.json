@@ -1,0 +1,19 @@
+{
+  "name": "oceanwp-child-embeddedio",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:js && npm run build:css",
+    "build:js": "esbuild assets/js/custom.js --bundle=false --minify --outfile=assets/js/custom.min.js",
+    "build:css": "postcss assets/css/custom.css -o assets/css/custom.min.css",
+    "watch:js": "esbuild assets/js/custom.js --bundle=false --minify --watch --outfile=assets/js/custom.min.js",
+    "watch:css": "postcss assets/css/custom.css -o assets/css/custom.min.css --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "postcss": "^8.5.0",
+    "postcss-cli": "^11.0.0",
+    "cssnano": "^7.0.0",
+    "autoprefixer": "^10.4.0"
+  }
+}
