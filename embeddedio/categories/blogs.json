@@ -1,0 +1,54 @@
+[
+  {
+    "id": "BL1",
+    "title": "Documentation Standard",
+    "slug": "documentation-standard",
+    "date": "2025-08-23",
+    "tags": [
+      "documentation",
+      "api",
+      "guide"
+    ],
+    "category": "Driver",
+    "excerpt": "Hướng dẫn viết tài liệu chuẩn mực cho API với ví dụ minh họa và code mẫu.",
+    "thumbnail": "https://images.unsplash.com/photo-1581090464777-f3220bbe1b8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+    "content": "# Documentation Standard\n\n> **Note**  \n> Much of the information in the API Reference section is available from within the e² studio tool via the [Developer Assistance](https://example.com/developer-assistance) feature.  \n> The information here can be referenced for additional details on API features.\n\n---\n\n## Key Points\n\n- **Bold text** dùng để nhấn mạnh  \n- *Italic text* dùng để làm nổi bật nhẹ  \n- [Link tham khảo](https://example.com) để dẫn người đọc đến nguồn ngoài  \n\n---\n\n## Example Code\n\n```c\n#include <stdio.h>\n\nint main() {\n    printf(\"Hello, Zephyr RTOS!\\n\");\n    return 0;\n}\n```",
+    "author": {
+      "id": "A001",
+      "name": "Pham Van Nhat",
+      "bio": "Hi there, I'm Nhat, an embedded systems engineer passionate about IoT, real-time systems, and AI integration.",
+      "avatar": "https://avatars.githubusercontent.com/u/156271796?v=4",
+      "job_title": "Embedded Software Engineer",
+      "company": "Ho Chi Minh City University of Technology",
+      "email": "embeddedrtos.vietnam@gmail.com",
+      "roles": {
+        "id": "admin",
+        "name": "Admin",
+        "icon": "https://cdn.jsdelivr.net/npm/lucide-static/icons/shield.svg",
+        "description": "Manages the community, sets direction, and ensures smooth operations."
+      },
+      "badges": [
+        {
+          "id": "top_contributor",
+          "name": "Top Contributor",
+          "icon": "https://cdn.jsdelivr.net/npm/lucide-static/icons/star.svg",
+          "description": "Recognized for consistently making valuable contributions."
+        },
+        {
+          "id": "open_source_contributor",
+          "name": "Open Source Contributor",
+          "icon": "https://cdn.jsdelivr.net/npm/lucide-static/icons/globe.svg",
+          "description": "Acknowledged for contributing to open-source projects."
+        }
+      ],
+      "socials": {
+        "github": "https://github.com/embeddedrtos",
+        "facebook": "https://www.facebook.com/emrtosVN",
+        "youtube": null,
+        "linkedin": null,
+        "twitter": null
+      }
+    },
+    "views": 426
+  }
+]

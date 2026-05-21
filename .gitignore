@@ -1,0 +1,45 @@
+# WordPress core
+/wp-admin/
+/wp-includes/
+/wp-*.php
+!/wp-config-sample.php
+/index.php
+
+# Config chứa password - KHÔNG BAO GIỜ commit
+wp-config.php
+wp-config
+
+# Uploads, cache, backup
+wp-content/uploads/
+wp-content/cache/
+wp-content/litespeed/
+wp-content/ai1wm-backups/
+wp-content/upgrade/
+
+# Plugins: chỉ track plugin custom
+wp-content/plugins/*
+!wp-content/plugins/ele-custom-skin/
+
+# Themes: chỉ track child theme tự viết
+wp-content/themes/*
+!wp-content/themes/oceanwp-child/
+
+# Database - KHÔNG commit
+*.sql
+
+# WordPress core files lẻ
+xmlrpc.php
+license.txt
+readme.html
+.htaccess.bk
+
+# Runtime data (thay đổi liên tục, không cần track)
+storage/
+
+# Misc
+node_modules/
+vendor/
+.DS_Store
+.vscode/
+*.log
+Thumbs.db
