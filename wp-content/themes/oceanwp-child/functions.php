@@ -53,5 +53,4 @@ add_filter( 'ocean_display_page_header', function( $display ) {
 } );
 
 // Load child theme includes
-require_once get_stylesheet_directory() . '/inc/footer-config.php';
 require_once get_stylesheet_directory() . '/inc/customizer.php';
