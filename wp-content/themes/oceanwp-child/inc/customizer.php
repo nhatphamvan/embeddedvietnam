@@ -68,6 +68,6 @@ function _embeddedio_text( $wpc, $id, $section, $label, $default, $sanitize ): v
 add_action( 'wp_head', function () {
     $color = sanitize_hex_color( get_theme_mod( 'embeddedio_accent_color', '#1a73e8' ) );
     if ( $color ) {
-        echo "<style>:root{--primary:{$color};}</style>\n";
+        printf( "<style>:root{--primary:%s;}</style>\n", esc_attr( $color ) );
     }
 } );

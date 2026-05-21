@@ -464,10 +464,96 @@ input[type="submit"]:hover {
     color: white;
 }
 
-/* ---------- Responsive ---------- */
-@media (max-width: 768px) {
-    .blog-entry-header img { height: 160px; }
+/* ---------- Focus States (Accessibility / WCAG 2.1) ---------- */
+:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+/* Remove default outline only when :focus-visible is supported */
+:focus:not(:focus-visible) { outline: none; }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+}
+
+/* ---------- Responsive — Tablet (≤ 1024px) ---------- */
+@media (max-width: 1024px) {
+    .eio-grid--3 { grid-template-columns: repeat(2, 1fr); }
+    .eio-two-col { grid-template-columns: 1fr; }
+    .footer-grid { grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+}
+
+/* ---------- Responsive — Mobile (≤ 768px) ---------- */
+@media (max-width: 768px) {
+    /* Typography */
     h1 { font-size: 1.6rem; }
     h2 { font-size: 1.3rem; }
+
+    /* Grids → single column */
+    .eio-grid--3    { grid-template-columns: 1fr; }
+    .eio-two-col    { grid-template-columns: 1fr; }
+    .footer-grid    { grid-template-columns: 1fr; gap: 1.25rem; padding: 2rem 0 1.5rem; }
+
+    /* Cards */
+    .blog-entry-header img      { height: 160px; }
+    .eio-card__thumb img        { height: 160px; }
+
+    /* List items — stack thumb above body */
+    .eio-list-item {
+        grid-template-columns: 1fr;
+    }
+    .eio-list-item__thumb img {
+        width: 100%;
+        height: 180px;
+    }
+    .eio-list-item__body { padding: 0.75rem; }
+
+    /* Hero */
+    .eio-hero { padding: 3rem 0 2.5rem; }
+    .eio-hero__actions { flex-direction: column; align-items: center; }
+    .btn { width: 100%; max-width: 280px; text-align: center; }
+
+    /* Navigation touch targets — min 44px height */
+    .navigation-style-one ul li a {
+        padding: 0.65rem 0.75rem;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* Category pills */
+    .eio-cat-pills { gap: 0.4rem; }
+    .eio-cat-pill  { font-size: 0.82rem; padding: 0.4rem 0.75rem; }
+
+    /* Scrolling text bar — smaller font on phones */
+    .scrolling-text { font-size: 16px; }
+
+    /* Section spacing */
+    .eio-section { padding: 2.5rem 0; }
+    .eio-cats-section { padding: 1.75rem 0; }
+}
+
+/* ---------- Responsive — Small Mobile (≤ 480px) ---------- */
+@media (max-width: 480px) {
+    h1 { font-size: 1.4rem; }
+
+    .eio-hero__title { font-size: 1.8rem; }
+    .eio-hero__desc  { font-size: 1rem; }
+
+    .footer-grid { padding: 1.5rem 0 1rem; }
+    .footer-social { gap: 0.5rem; }
+
+    /* Pagination — smaller tap area fix */
+    .eio-pagination .page-numbers {
+        padding: 0.5rem 0.7rem;
+        min-width: 36px;
+        text-align: center;
+    }
 }
