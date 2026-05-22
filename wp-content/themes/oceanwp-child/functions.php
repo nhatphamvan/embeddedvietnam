@@ -83,6 +83,15 @@ add_filter( 'ocean_display_page_header', function( $display ) {
     return is_front_page() ? false : $display;
 } );
 
+// Redirect native WP search to homepage so the JS overlay handles it
+add_action( 'template_redirect', function() {
+    if ( is_search() && ! is_admin() ) {
+        $q = get_search_query();
+        wp_safe_redirect( home_url( '/?search=' . rawurlencode( $q ) ) );
+        exit;
+    }
+} );
+
 // Load child theme includes
 require_once get_stylesheet_directory() . '/inc/customizer.php';
 require_once get_stylesheet_directory() . '/inc/seo.php';

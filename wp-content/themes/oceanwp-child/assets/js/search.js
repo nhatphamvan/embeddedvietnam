@@ -178,16 +178,16 @@
       timer = setTimeout(() => runSearch(q), 250);
     });
 
-    // Intercept all .nav-search forms
+    // Intercept all search forms (nav-search, WP default search forms)
     document.addEventListener('submit', e => {
-      const form = e.target.closest('.nav-search, form[action="/"][method="get"]');
+      const form = e.target.closest('form');
       if (!form) return;
+      const hasS = form.querySelector('[name="s"]');
+      const isNavSearch = form.closest('.nav-search');
+      if (!hasS && !isNavSearch) return;
       e.preventDefault();
-      const val = form.querySelector('[name="s"], [type="search"]')?.value?.trim() || '';
-      if (val) {
-        input.value = val;
-        lastQuery = '';
-      }
+      const val = (hasS?.value || form.querySelector('[type="search"]')?.value || '').trim();
+      if (val) { input.value = val; lastQuery = ''; }
       open();
       if (val) runSearch(val);
     });
@@ -201,6 +201,16 @@
         open();
       }
     }, true);
+
+    // Handle redirect from native WP search: /?search=query
+    const urlQ = new URLSearchParams(location.search).get('search');
+    if (urlQ) {
+      history.replaceState(null, '', location.pathname);
+      input.value = urlQ;
+      lastQuery = '';
+      open();
+      runSearch(urlQ);
+    }
   }
 
   if (document.readyState === 'loading') {
