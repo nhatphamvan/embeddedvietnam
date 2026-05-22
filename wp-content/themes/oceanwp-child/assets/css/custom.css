@@ -486,6 +486,23 @@ select:focus-visible,
     outline-offset: 3px;
 }
 
+/* ---------- Videos page (/videos) — carousel height + breadcrumb gap ---------- */
+/* On mobile, .video-side-2 is hidden so .video-main has no intrinsic height
+   (all children are absolute-positioned) → carousel collapses to 0, leaving
+   a ~40px dead zone before the tag sections. aspect-ratio fixes the height. */
+.page-id-2266 .breadcrumb-container-video {
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+@media (max-width: 768px) {
+    .page-id-2266 .video-main {
+        aspect-ratio: 16 / 9;
+    }
+    .page-id-2266 .videos-layout {
+        gap: 12px;
+    }
+}
+
 /* ---------- Container — horizontal gutter (web ↔ mobile) ---------- */
 /* One --page-x token aligns OceanWP pages, Elementor pages, and custom
    sections to the same edge so navigation between pages feels seamless. */
