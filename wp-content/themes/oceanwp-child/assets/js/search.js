@@ -12,7 +12,7 @@
   ];
 
   let cache = {};
-  let overlay, input, results, tabs, activeTab = 'all', lastQuery = '', justClosed = false;
+  let overlay, input, results, tabs, activeTab = 'all', lastQuery = '', justClosed = false, savedScroll = 0;
 
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -135,8 +135,9 @@
   }
 
   function open() {
+    savedScroll = window.scrollY;
     overlay.removeAttribute('hidden');
-    document.body.style.overflow = 'hidden';
+    document.body.style.cssText += ';overflow:hidden!important;position:fixed;top:-' + savedScroll + 'px;width:100%;';
     input.focus();
     input.select();
   }
@@ -144,6 +145,11 @@
   function close() {
     overlay.setAttribute('hidden', '');
     document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    window.scrollTo(0, savedScroll);
+    window.dispatchEvent(new Event('scroll'));
     justClosed = true;
     setTimeout(() => { justClosed = false; }, 300);
   }
