@@ -142,6 +142,12 @@
 
   function close() {
     overlay.setAttribute('hidden', '');
+    // If we're on a WP search results page (no Elementor header), go home
+    if (document.body.classList.contains('search-results') ||
+        document.body.classList.contains('search-no-results')) {
+      window.location.href = '/';
+      return;
+    }
     justClosed = true;
     setTimeout(() => { justClosed = false; }, 300);
   }
@@ -200,8 +206,9 @@
       }
     }, true);
 
-    // Handle redirect from native WP search: /?search=query
-    const urlQ = new URLSearchParams(location.search).get('search');
+    // Handle both /?search= (PHP redirect) and /?s= (direct WP search, JS fallback)
+    const params = new URLSearchParams(location.search);
+    const urlQ = params.get('search') || params.get('s');
     if (urlQ) {
       history.replaceState(null, '', location.pathname);
       input.value = urlQ;
