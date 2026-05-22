@@ -12,7 +12,7 @@
   ];
 
   let cache = {};
-  let overlay, input, results, tabs, activeTab = 'all', lastQuery = '';
+  let overlay, input, results, tabs, activeTab = 'all', lastQuery = '', justClosed = false;
 
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -144,6 +144,8 @@
   function close() {
     overlay.setAttribute('hidden', '');
     document.body.style.overflow = '';
+    justClosed = true;
+    setTimeout(() => { justClosed = false; }, 300);
   }
 
   function init() {
@@ -192,6 +194,7 @@
 
     // Also trigger on nav search input focus
     document.addEventListener('focus', e => {
+      if (justClosed) return;
       if (e.target.closest('.nav-search')) {
         const val = e.target.value?.trim() || '';
         input.value = val;
