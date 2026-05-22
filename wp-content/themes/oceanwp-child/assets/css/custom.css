@@ -15,6 +15,9 @@
     --radius:       8px;
     --shadow:       0 1px 4px rgba(0,0,0,.08);
     --shadow-hover: 0 4px 16px rgba(0,0,0,.12);
+    /* spacing — fluid scale keeps web ↔ mobile consistent */
+    --page-x:    clamp(16px, 4vw, 20px);     /* horizontal page gutter */
+    --section-y: clamp(2.5rem, 5vw, 4rem);  /* section vertical padding */
 }
 
 /* ---------- Typography ---------- */
@@ -250,7 +253,7 @@ input[type="submit"]:hover {
 /* ---------- Hero ---------- */
 .eio-hero {
     background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
-    padding: 5rem 0 4rem;
+    padding: calc(var(--section-y) * 1.25) 0 var(--section-y);
     text-align: center;
 }
 .eio-hero__badge {
@@ -286,7 +289,7 @@ input[type="submit"]:hover {
 .btn-outline:hover { border-color: #fff; }
 
 /* ---------- Sections ---------- */
-.eio-section { padding: 4rem 0; }
+.eio-section { padding: var(--section-y) 0; }
 .eio-section__header {
     display: flex;
     align-items: center;
@@ -332,7 +335,7 @@ input[type="submit"]:hover {
 .sep { opacity: 0.4; }
 
 /* ---------- Category Pills ---------- */
-.eio-cats-section { background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 2.5rem 0; }
+.eio-cats-section { background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: clamp(1.75rem, 3.5vw, 2.5rem) 0; }
 .eio-cats-section h2 { margin-bottom: 1.25rem; font-size: 1.3rem; }
 .eio-cat-pills { display: flex; flex-wrap: wrap; gap: 0.6rem; }
 .eio-cat-pill {
@@ -483,6 +486,28 @@ select:focus-visible,
     outline-offset: 3px;
 }
 
+/* ---------- Container — horizontal gutter (web ↔ mobile) ---------- */
+/* One --page-x token aligns OceanWP pages, Elementor pages, and custom
+   sections to the same edge so navigation between pages feels seamless. */
+@media (max-width: 768px) {
+    /* OceanWP content wrap */
+    .wrap {
+        padding-left:  var(--page-x);
+        padding-right: var(--page-x);
+    }
+    /* Elementor legacy (widget-based) sections */
+    .elementor-section-boxed > .elementor-container,
+    .elementor-section-full_width > .elementor-container {
+        padding-left:  var(--page-x);
+        padding-right: var(--page-x);
+    }
+    /* Elementor Flexbox containers (Elementor 3.6+) */
+    .e-con > .e-con-inner {
+        padding-left:  var(--page-x);
+        padding-right: var(--page-x);
+    }
+}
+
 /* ---------- Responsive — Tablet (≤ 1024px) ---------- */
 @media (max-width: 1024px) {
     .eio-grid--3 { grid-template-columns: repeat(2, 1fr); }
@@ -516,7 +541,6 @@ select:focus-visible,
     .eio-list-item__body { padding: 0.75rem; }
 
     /* Hero */
-    .eio-hero { padding: 3rem 0 2.5rem; }
     .eio-hero__actions { flex-direction: column; align-items: center; }
     .btn { width: 100%; max-width: 280px; text-align: center; }
 
@@ -535,9 +559,7 @@ select:focus-visible,
     /* Scrolling text bar — smaller font on phones */
     .scrolling-text { font-size: 16px; }
 
-    /* Section spacing */
-    .eio-section { padding: 2.5rem 0; }
-    .eio-cats-section { padding: 1.75rem 0; }
+    /* Section spacing — handled by clamp() tokens in base rules */
 }
 
 /* ---------- Responsive — Small Mobile (≤ 480px) ---------- */

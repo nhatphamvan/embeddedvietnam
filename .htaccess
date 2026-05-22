@@ -132,6 +132,6 @@ SetEnvIf Referer "^http://localhost" ALLOW_SITE
     RewriteCond %{HTTP_REFERER} !^https://(www\.)?embedded\.io\.vn [NC]
     RewriteCond %{HTTP_REFERER} !^http://localhost [NC]
     RewriteCond %{HTTP_REFERER} !^$ [NC]
-    RewriteRule ^embeddedio/ - [F,L]
+    RewriteRule ^embeddedio/(?!assets/) - [F,L]
 </IfModule>
 
