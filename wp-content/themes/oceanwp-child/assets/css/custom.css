@@ -486,14 +486,34 @@ select:focus-visible,
     outline-offset: 3px;
 }
 
+/* ---------- Breadcrumb — uniform spacing across all pages ---------- */
+/* Each page defines its own breadcrumb class inside an Elementor HTML widget.
+   Using a 2-class selector (higher specificity) overrides those per-page rules
+   without needing !important. */
+.container-aligned .breadcrumb-container,
+.container-aligned .breadcrumb-container-video {
+    margin-top: 16px;
+    margin-bottom: 14px;
+}
+@media (max-width: 768px) {
+    .container-aligned .breadcrumb-container,
+    .container-aligned .breadcrumb-container-video {
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+}
+
+/* /blogs (page 1425): its Elementor content container has padding-top:20px
+   while all other pages have 0 — zero it out to match. */
+.elementor-1425 .elementor-element.elementor-element-3d8d5f6 {
+    padding-top: 0 !important;
+}
+
 /* ---------- Videos page (/videos) — carousel height + breadcrumb gap ---------- */
 /* On mobile, .video-side-2 is hidden so .video-main has no intrinsic height
    (all children are absolute-positioned) → carousel collapses to 0, leaving
    a ~40px dead zone before the tag sections. aspect-ratio fixes the height. */
-.page-id-2266 .breadcrumb-container-video {
-    margin-top: 0;
-    margin-bottom: 12px;
-}
+/* breadcrumb spacing handled by unified rule above */
 @media (max-width: 768px) {
     .page-id-2266 .video-main {
         aspect-ratio: 16 / 9;
