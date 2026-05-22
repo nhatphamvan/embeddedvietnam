@@ -3,19 +3,25 @@
 
   const BASE = '/embeddedio/categories/';
   const SOURCES = [
-    { key: 'videos',       label: 'Video',       file: 'videos.json',       fields: ['title','description','tags'],        url: v => v.url,       thumb: v => v.thumbnail_url },
-    { key: 'news',         label: 'Tin tức',     file: 'news.json',         fields: ['message','title'],                   url: v => v.permalink_url, thumb: v => v.full_picture },
-    { key: 'facebook',     label: 'Bài đăng',   file: 'facebook_posts.json',fields: ['title','description'],              url: v => v.permalink_url, thumb: v => v.full_picture },
-    { key: 'recruitments', label: 'Tuyển dụng', file: 'recruitments.json',  fields: ['title','description','tags'],        url: v => v.apply?.email ? null : null, thumb: v => v.full_picture },
-    { key: 'events',       label: 'Sự kiện',    file: 'events.json',        fields: ['title','location','categories'],     url: v => v.url,       thumb: null },
-    { key: 'blogs',        label: 'Blog',        file: 'blogs.json',         fields: ['title','excerpt','tags'],            url: v => v.url,       thumb: v => v.thumbnail },
+    { key: 'videos',       label: 'Video',       file: 'videos.json',        fields: ['title','description','tags'],     url: v => v.url,           thumb: v => v.thumbnail_url },
+    { key: 'news',         label: 'Tin tức',     file: 'news.json',          fields: ['message','title'],               url: v => v.permalink_url, thumb: v => v.full_picture },
+    { key: 'facebook',     label: 'Bài đăng',   file: 'facebook_posts.json', fields: ['title','description'],           url: v => v.permalink_url, thumb: v => v.full_picture },
+    { key: 'recruitments', label: 'Tuyển dụng', file: 'recruitments.json',   fields: ['title','description','tags'],    url: v => v.permalink_url, thumb: v => v.full_picture },
+    { key: 'events',       label: 'Sự kiện',    file: 'events.json',         fields: ['title','location','categories'], url: v => v.url,           thumb: null },
+    { key: 'blogs',        label: 'Blog',        file: 'blogs.json',          fields: ['title','excerpt','tags'],        url: v => v.url,           thumb: v => v.thumbnail },
   ];
 
   let cache = {};
-  let overlay, input, results, tabs, activeTab = 'all', lastQuery = '', justClosed = false;
+  let overlay, input, results, tabs;
+  let activeTab = 'all';
+  let lastQuery = '';
+  let isOpen = false;
+
+  /* ── helpers ───────────────────────────────────────────────────────────── */
 
   function esc(s) {
-    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    return String(s || '').replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
   function highlight(text, q) {
@@ -33,28 +39,33 @@
     });
   }
 
+  /* ── data ──────────────────────────────────────────────────────────────── */
+
   async function fetchSource(src) {
     if (cache[src.key]) return cache[src.key];
     try {
       const res = await fetch(BASE + src.file, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       cache[src.key] = await res.json();
-    } catch (e) {
+    } catch (_) {
       cache[src.key] = [];
     }
     return cache[src.key];
   }
+
+  /* ── render ────────────────────────────────────────────────────────────── */
 
   function renderCard(item, src, q) {
     const url   = src.url ? src.url(item) : null;
     const thumb = src.thumb ? src.thumb(item) : null;
     const title = item.title || item.message?.slice(0, 80) || '(Không có tiêu đề)';
     const desc  = item.description || item.excerpt || item.message?.slice(0, 120) || '';
-    const tag   = `<span class="sr-badge">${esc(src.label)}</span>`;
 
     return `<a class="sr-card" href="${esc(url || '#')}" target="${url ? '_blank' : '_self'}" rel="noopener">
-      ${thumb ? `<img class="sr-thumb" src="${esc(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '<div class="sr-thumb sr-thumb--empty"></div>'}
+      ${thumb
+        ? `<img class="sr-thumb" src="${esc(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+        : '<div class="sr-thumb sr-thumb--empty"></div>'}
       <div class="sr-card-body">
-        ${tag}
+        <span class="sr-badge">${esc(src.label)}</span>
         <p class="sr-card-title">${highlight(title, q)}</p>
         ${desc ? `<p class="sr-card-desc">${highlight(desc.slice(0, 100), q)}…</p>` : ''}
       </div>
@@ -70,14 +81,11 @@
     results.innerHTML = '<p class="sr-hint">Đang tìm…</p>';
     const qLow = q.toLowerCase();
 
-    const all = await Promise.all(SOURCES.map(async src => {
-      const data = await fetchSource(src);
-      const hits = data.filter(item => matches(item, src.fields, qLow));
-      return { src, hits };
-    }));
+    const all = await Promise.all(
+      SOURCES.map(async src => ({ src, hits: (await fetchSource(src)).filter(item => matches(item, src.fields, qLow)) }))
+    );
 
-    const byKey = {};
-    all.forEach(({ src, hits }) => { byKey[src.key] = { src, hits }; });
+    const byKey = Object.fromEntries(all.map(({ src, hits }) => [src.key, { src, hits }]));
     renderTabs(byKey, q);
     renderResults(byKey, q);
   }
@@ -112,19 +120,23 @@
     results.innerHTML = toShow.slice(0, 30).map(({ item, src }) => renderCard(item, src, q)).join('');
   }
 
+  /* ── overlay DOM ───────────────────────────────────────────────────────── */
+
   function buildOverlay() {
     const el = document.createElement('div');
     el.id = 'unified-search';
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-modal', 'true');
     el.setAttribute('aria-label', 'Tìm kiếm');
+    el.hidden = true;
     el.innerHTML = `
       <div class="sr-backdrop"></div>
       <div class="sr-panel">
         <div class="sr-header">
           <label for="sr-input" class="sr-only">Tìm kiếm</label>
           <input id="sr-input" type="search" autocomplete="off" spellcheck="false"
-            placeholder="Tìm video, tin tức, việc làm, sự kiện…" aria-autocomplete="list" aria-controls="sr-results">
+            placeholder="Tìm video, tin tức, việc làm, sự kiện…"
+            aria-autocomplete="list" aria-controls="sr-results">
           <button class="sr-close" aria-label="Đóng">✕</button>
         </div>
         <div id="sr-tabs" role="tablist"></div>
@@ -134,44 +146,59 @@
     return el;
   }
 
-  function open() {
-    overlay.removeAttribute('hidden');
-    input.focus();
-    input.select();
+  /* ── open / close ──────────────────────────────────────────────────────── */
+
+  function open(prefill) {
+    if (isOpen) return;
+    isOpen = true;
+    overlay.hidden = false;
+    if (prefill != null && prefill !== input.value) {
+      input.value = prefill;
+      lastQuery = '';
+    }
+    // rAF: let the browser paint the overlay before focusing,
+    // preventing synchronous focus events from leaking to the page below
+    requestAnimationFrame(() => {
+      input.focus();
+      if (input.value.trim().length >= 2) runSearch(input.value.trim());
+    });
   }
 
   function close() {
-    justClosed = true;                     // must be BEFORE setAttribute so the
-    overlay.setAttribute('hidden', '');    // synchronous focus-return event sees it
+    if (!isOpen) return;
+    isOpen = false;
+    overlay.hidden = true;
+    // If PHP redirect failed and user is on the WP search page (no header), go home
     if (document.body.classList.contains('search-results') ||
         document.body.classList.contains('search-no-results')) {
       window.location.href = '/';
-      return;
     }
-    setTimeout(() => { justClosed = false; }, 300);
   }
+
+  /* ── init ──────────────────────────────────────────────────────────────── */
 
   function init() {
     overlay = buildOverlay();
     input   = overlay.querySelector('#sr-input');
     results = overlay.querySelector('#sr-results');
     tabs    = overlay.querySelector('#sr-tabs');
-    overlay.setAttribute('hidden', '');
 
-    // Close
+    // Close: X button, backdrop click, Escape key
     overlay.querySelector('.sr-close').addEventListener('click', close);
     overlay.querySelector('.sr-backdrop').addEventListener('click', close);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 
-    // Keyboard shortcut: / or Ctrl+K
+    // Open: keyboard shortcut (/ or Ctrl+K)
     document.addEventListener('keydown', e => {
-      if ((e.key === '/' || (e.ctrlKey && e.key === 'k')) && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
+      if (isOpen) return;
+      if ((e.key === '/' || (e.ctrlKey && e.key === 'k')) &&
+          !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
         e.preventDefault();
         open();
       }
     });
 
-    // Debounced search
+    // Debounced search on typing
     let timer;
     input.addEventListener('input', () => {
       const q = input.value.trim();
@@ -181,39 +208,33 @@
       timer = setTimeout(() => runSearch(q), 250);
     });
 
-    // Intercept all search forms (nav-search, WP default search forms)
+    // Intercept native WP search form submissions
     document.addEventListener('submit', e => {
       const form = e.target.closest('form');
       if (!form) return;
-      const hasS = form.querySelector('[name="s"]');
-      const isNavSearch = form.closest('.nav-search');
-      if (!hasS && !isNavSearch) return;
+      if (!form.querySelector('[name="s"]') && !form.closest('.nav-search')) return;
       e.preventDefault();
-      const val = (hasS?.value || form.querySelector('[type="search"]')?.value || '').trim();
-      if (val) { input.value = val; lastQuery = ''; }
+      const val = (form.querySelector('[name="s"]')?.value || '').trim();
+      open(val || undefined);
+    });
+
+    // Open on explicit click inside nav-search area
+    // Using 'click' (not 'focus') — only fires on real user interaction,
+    // never when the browser auto-returns focus after overlay closes
+    document.addEventListener('click', e => {
+      if (isOpen) return;
+      if (!e.target.closest('.nav-search')) return;
+      if (e.target.matches('[type="submit"], button[type="submit"]')) return;
+      e.preventDefault();
       open();
-      if (val) runSearch(val);
     });
 
-    // Open when user explicitly taps/clicks nav-search (pointerdown = mouse + touch,
-    // fires only on real user interaction — never when browser auto-returns focus)
-    document.addEventListener('pointerdown', e => {
-      if (e.target.closest('.nav-search')) {
-        const val = e.target.closest('.nav-search').querySelector('input')?.value?.trim() || '';
-        input.value = val;
-        open();
-      }
-    });
-
-    // Handle both /?search= (PHP redirect) and /?s= (direct WP search, JS fallback)
+    // JS fallback: handle /?s= (if PHP redirect missed) and /?search= (after redirect)
     const params = new URLSearchParams(location.search);
-    const urlQ = params.get('search') || params.get('s');
+    const urlQ = params.get('s') || params.get('search');
     if (urlQ) {
       history.replaceState(null, '', location.pathname);
-      input.value = urlQ;
-      lastQuery = '';
-      open();
-      runSearch(urlQ);
+      open(urlQ);
     }
   }
 
