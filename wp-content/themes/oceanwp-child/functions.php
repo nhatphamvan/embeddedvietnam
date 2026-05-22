@@ -42,6 +42,21 @@ function oceanwp_child_enqueue_styles() {
         $version,
         true
     );
+
+    // Unified search overlay
+    wp_enqueue_style(
+        'oceanwp-child-search',
+        get_stylesheet_directory_uri() . '/assets/css/search.css',
+        array(),
+        $version
+    );
+    wp_enqueue_script(
+        'oceanwp-child-search',
+        get_stylesheet_directory_uri() . '/assets/js/search.js',
+        array(),
+        $version,
+        true
+    );
 }
 
 // Preconnect to Google Fonts (reduces latency ~100-200ms)
