@@ -68,6 +68,9 @@ add_action( 'wp_head', function() {
 // Ẩn OceanWP header trên TẤT CẢ page dùng Elementor (Elementor tự build nav)
 add_action( 'wp', function() {
     global $post;
+    // Guard: never remove header on search/archive pages — $post may be set
+    // to the first result (an Elementor page), which would wrongly strip the header.
+    if ( is_search() || is_archive() ) return;
     if ( $post && get_post_meta( $post->ID, '_elementor_edit_mode', true ) === 'builder' ) {
         remove_all_actions( 'ocean_top_bar' );
         remove_all_actions( 'ocean_header' );
@@ -76,6 +79,7 @@ add_action( 'wp', function() {
 
 // Ẩn OceanWP page title + breadcrumb trên TẤT CẢ Elementor pages
 add_filter( 'ocean_display_page_header', function( $display ) {
+    if ( is_search() || is_archive() ) return $display;
     global $post;
     if ( $post && get_post_meta( $post->ID, '_elementor_edit_mode', true ) === 'builder' ) {
         return false;
