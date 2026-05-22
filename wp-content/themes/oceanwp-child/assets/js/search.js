@@ -141,14 +141,13 @@
   }
 
   function close() {
-    overlay.setAttribute('hidden', '');
-    // If we're on a WP search results page (no Elementor header), go home
+    justClosed = true;                     // must be BEFORE setAttribute so the
+    overlay.setAttribute('hidden', '');    // synchronous focus-return event sees it
     if (document.body.classList.contains('search-results') ||
         document.body.classList.contains('search-no-results')) {
       window.location.href = '/';
       return;
     }
-    justClosed = true;
     setTimeout(() => { justClosed = false; }, 300);
   }
 
@@ -196,15 +195,15 @@
       if (val) runSearch(val);
     });
 
-    // Also trigger on nav search input focus
-    document.addEventListener('focus', e => {
-      if (justClosed) return;
+    // Open when user explicitly taps/clicks nav-search (pointerdown = mouse + touch,
+    // fires only on real user interaction — never when browser auto-returns focus)
+    document.addEventListener('pointerdown', e => {
       if (e.target.closest('.nav-search')) {
-        const val = e.target.value?.trim() || '';
+        const val = e.target.closest('.nav-search').querySelector('input')?.value?.trim() || '';
         input.value = val;
         open();
       }
-    }, true);
+    });
 
     // Handle both /?search= (PHP redirect) and /?s= (direct WP search, JS fallback)
     const params = new URLSearchParams(location.search);
