@@ -104,13 +104,16 @@ add_action( 'wp_footer', function () {
     if (!document.body.classList.contains('home')) return;
     var h = Array.from(document.querySelectorAll('h2,h3,.elementor-heading-title'))
               .find(function (el) { return el.textContent.trim() === 'Recruitment'; });
+    console.log('[EIO] heading:', h ? h.textContent : 'NOT FOUND');
     if (!h) return;
 
     var a = h;
     while (a && a !== document.body) {
-        if (a.classList.contains('e-parent')) break;
+        if (a.parentElement && a.parentElement.classList.contains('elementor')) break;
         a = a.parentElement;
     }
+    console.log('[EIO] anchor:', a ? a.className.substring(0,80) : 'NOT FOUND');
+    console.log('[EIO] anchor.parent:', a ? a.parentElement.className.substring(0,60) : '-');
     if (!a || a === document.body) return;
 
     var s = document.createElement('div');
