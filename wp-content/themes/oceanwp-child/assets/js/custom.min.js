@@ -74,23 +74,11 @@
         }
         if (!recruitHeading) return;
 
-        /* Walk up to the nearest Elementor section/container ancestor */
-        var anchor = recruitHeading.parentElement;
+        /* Walk up to the top-level Elementor container (has class e-parent) */
+        var anchor = recruitHeading;
         while (anchor && anchor !== document.body) {
-            var cls = anchor.className || '';
-            if (cls.indexOf('elementor-section') !== -1 ||
-                cls.indexOf('elementor-top-section') !== -1 ||
-                (cls.indexOf('e-con') !== -1 && anchor.parentElement === anchor.parentElement.parentElement)) {
-                break;
-            }
+            if (anchor.classList.contains('e-parent')) break;
             anchor = anchor.parentElement;
-        }
-        /* Fallback: use the heading's closest section-level ancestor */
-        if (!anchor || anchor === document.body) {
-            anchor = recruitHeading.closest('section, .elementor-section, .e-con') || recruitHeading.parentElement;
-            while (anchor && anchor.parentElement && anchor.parentElement !== document.body) {
-                anchor = anchor.parentElement;
-            }
         }
         if (!anchor || anchor === document.body) return;
 
