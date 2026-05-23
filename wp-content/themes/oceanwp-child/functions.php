@@ -98,10 +98,10 @@ add_action( 'template_redirect', function() {
 
 // Inject Courses section above Recruitment on homepage
 add_action( 'wp_footer', function () {
-    if ( ! is_front_page() ) return;
     ?>
 <script>
 (function () {
+    if (!document.body.classList.contains('home')) return;
     var h = Array.from(document.querySelectorAll('h2,h3,.elementor-heading-title'))
               .find(function (el) { return el.textContent.trim() === 'Recruitment'; });
     if (!h) return;
