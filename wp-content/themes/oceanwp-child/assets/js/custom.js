@@ -39,29 +39,5 @@
         }, { passive: true });
     }
 
-    // ── Header nav: inject "Khóa học" menu item ───────────────────────────
-    function injectHeaderNav() {
-        var nav = document.querySelector('#primary-menu, .elementor-nav-menu--main');
-        if (!nav || nav.dataset.courseInjected) return;
-        nav.dataset.courseInjected = '1';
-
-        var li = document.createElement('li');
-        li.className = 'menu-item menu-item-has-children';
-        li.innerHTML =
-            '<a href="/mcal/">Khóa học</a>' +
-            '<ul class="sub-menu">' +
-              '<li class="menu-item"><a href="/mcal/">Tất cả khóa học</a></li>' +
-              '<li class="menu-item"><a href="/mcal/modules/01-mcu/rcc-stm32f411.html">MCAL — RCC STM32F411</a></li>' +
-              '<li class="menu-item"><a href="/mcal/modules/01-mcu/mcu-driver-mcal.html">MCAL — MCU Driver</a></li>' +
-            '</ul>';
-        nav.appendChild(li);
-    }
-
-    function onLoad(fn) {
-        if (document.readyState === 'complete') { fn(); }
-        else { window.addEventListener('load', fn); }
-    }
-
-    onLoad(function () { injectHeaderNav(); });
 
 })();
