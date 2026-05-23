@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PLL — Module MCU | MCAL Course</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/course.css">
+</head>
+
+<body data-lesson-id="mcu-02-pll">
+
+<!-- ══ Top bar ══════════════════════════════════════════════════ -->
+<header class="course-topbar">
+  <div class="topbar-logo">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <rect width="20" height="20" rx="5" fill="#1a73e8"/>
+      <path d="M5 10h10M10 5v10" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    MCAL Course
+  </div>
+  <div class="topbar-breadcrumb">
+    <span class="sep">›</span>
+    <span>Module MCU</span>
+    <span class="sep">›</span>
+    <span class="current">PLL</span>
+  </div>
+  <div class="topbar-right">
+    <a href="../../index.html" style="font-size:13px;color:var(--text-muted)">← Tổng quan</a>
+  </div>
+</header>
+
+<div class="progress-bar-wrap">
+  <div class="progress-bar-fill" style="width:0%"></div>
+</div>
+
+<!-- ══ Layout ═══════════════════════════════════════════════════ -->
+<div class="course-layout">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────── -->
+  <nav class="course-sidebar">
+    <div class="sidebar-header">Nội dung khóa học</div>
+
+    <div class="sidebar-module open">
+      <div class="sidebar-module-title">
+        <span class="mod-icon">🔧</span>Module 1 — MCU
+        <span class="chevron">›</span>
+      </div>
+      <div class="sidebar-lessons">
+        <a class="sidebar-lesson" href="01-clock-tree.html" data-id="mcu-01-clock-tree">
+          Clock Tree <span class="lesson-status"></span>
+        </a>
+        <a class="sidebar-lesson active" href="02-pll.html" data-id="mcu-02-pll">
+          PLL <span class="lesson-status"></span>
+        </a>
+        <a class="sidebar-lesson" href="03-mcal-api.html" data-id="mcu-03-mcal-api">
+          MCU Driver API <span class="lesson-status"></span>
+        </a>
+      </div>
+    </div>
+
+    <div class="sidebar-module">
+      <div class="sidebar-module-title">
+        <span class="mod-icon">📡</span>Module 2 — Communication
+        <span class="chevron">›</span>
+      </div>
+      <div class="sidebar-lessons">
+        <a class="sidebar-lesson" href="#" data-id="com-01-spi">SPI Driver <span class="lesson-status"></span></a>
+        <a class="sidebar-lesson" href="#" data-id="com-02-i2c">I2C Driver <span class="lesson-status"></span></a>
+        <a class="sidebar-lesson" href="#" data-id="com-03-uart">UART Driver <span class="lesson-status"></span></a>
+      </div>
+    </div>
+
+    <div class="sidebar-module">
+      <div class="sidebar-module-title">
+        <span class="mod-icon">⚡</span>Module 3 — ADC / PWM
+        <span class="chevron">›</span>
+      </div>
+      <div class="sidebar-lessons">
+        <a class="sidebar-lesson" href="#" data-id="adc-01">ADC Driver <span class="lesson-status"></span></a>
+        <a class="sidebar-lesson" href="#" data-id="pwm-01">PWM Driver <span class="lesson-status"></span></a>
+        <a class="sidebar-lesson" href="#" data-id="gpt-01">GPT Driver <span class="lesson-status"></span></a>
+      </div>
+    </div>
+
+    <button class="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+  </nav>
+
+  <!-- ── Main ────────────────────────────────────────────────── -->
+  <main class="course-main">
+    <div class="lesson-header">
+      <div class="lesson-meta">Bài 2 / Module 1 — MCU</div>
+      <h1 class="lesson-title">PLL — Phase Locked Loop</h1>
+      <p class="lesson-desc">
+        Hiểu cơ chế PLL nhân tần số từ nguồn clock thô (HSE/HSI) lên tần số hệ thống cao,
+        cách tính toán các hệ số M/N/P, và triển khai theo chuẩn AUTOSAR MCAL.
+      </p>
+      <div class="lesson-tags">
+        <span class="ltag ltag-theory">Lý thuyết</span>
+        <span class="ltag ltag-anim">Animation</span>
+        <span class="ltag ltag-code">Code</span>
+        <span class="ltag ltag-quiz">Quiz</span>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 1 — THEORY
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-block theory">
+      <div class="section-head">
+        <span class="section-icon">📖</span>
+        <span class="section-label">Lý thuyết</span>
+        <span class="section-title-text">PLL là gì và tại sao cần nó?</span>
+        <span class="collapse-chevron">›</span>
+      </div>
+      <div class="section-body">
+
+        <h2>1. Vấn đề: tần số crystal quá thấp</h2>
+        <p>
+          Vi điều khiển như STM32F4 có thể chạy tới <strong>168 MHz</strong>, nhưng crystal HSE
+          thường chỉ có tần số <strong>8–25 MHz</strong>. Nếu dùng trực tiếp, CPU sẽ chậm hơn
+          8–20× so với khả năng tối đa.
+        </p>
+        <p>
+          PLL (Phase Locked Loop) là mạch điện tử bên trong chip cho phép <strong>nhân tần số</strong>
+          từ nguồn tham chiếu thấp lên tần số mục tiêu cao, đồng thời giữ ổn định pha.
+        </p>
+
+        <h2>2. Nguyên lý hoạt động của PLL</h2>
+        <p>PLL gồm 4 khối chính:</p>
+        <ul>
+          <li><strong>Phase Detector (PD)</strong> — so sánh pha giữa tín hiệu tham chiếu và tín hiệu phản hồi</li>
+          <li><strong>Low-Pass Filter (LPF)</strong> — lọc nhiễu tần số cao từ đầu ra PD</li>
+          <li><strong>VCO (Voltage Controlled Oscillator)</strong> — tạo dao động tần số cao, điều chỉnh bởi điện áp từ LPF</li>
+          <li><strong>Divider (N)</strong> — chia tần số VCO xuống, đưa về PD để so sánh (vòng phản hồi)</li>
+        </ul>
+        <p>
+          Khi vòng khoá (lock), tần số phản hồi <em>bằng</em> tần số tham chiếu, do đó:
+          <code>f_VCO = f_ref × N</code>
+        </p>
+
+        <h2>3. Công thức PLL trên STM32F4</h2>
+        <p>STM32F4 sử dụng công thức PLL chính:</p>
+        <div class="formula-box">
+          <span class="formula">f_PLL = (f_in / PLLM) × PLLN / PLLP</span>
+          <span class="formula-note">với f_in = HSE hoặc HSI (÷2)</span>
+        </div>
+        <table class="theory-table">
+          <thead><tr><th>Tham số</th><th>Phạm vi</th><th>Vai trò</th></tr></thead>
+          <tbody>
+            <tr><td><code>PLLM</code></td><td>2–63</td><td>Pre-divider — chia f_in xuống ~1–2 MHz (đầu vào VCO)</td></tr>
+            <tr><td><code>PLLN</code></td><td>50–432</td><td>VCO multiplier — nhân lên, phải nằm trong 100–432 MHz</td></tr>
+            <tr><td><code>PLLP</code></td><td>2, 4, 6, 8</td><td>Post-divider — chia VCO xuống SYSCLK ≤ 168 MHz</td></tr>
+            <tr><td><code>PLLQ</code></td><td>2–15</td><td>USB/SDIO clock — phải = 48 MHz cho USB hoạt động</td></tr>
+          </tbody>
+        </table>
+
+        <h2>4. Ví dụ tính toán — 168 MHz từ HSE 8 MHz</h2>
+        <div class="calc-steps">
+          <div class="calc-step">
+            <span class="step-num">1</span>
+            <div>
+              <strong>Chọn PLLM = 8</strong>
+              <p>f_vco_in = 8 MHz / 8 = <strong>1 MHz</strong> (tối ưu cho VCO)</p>
+            </div>
+          </div>
+          <div class="calc-step">
+            <span class="step-num">2</span>
+            <div>
+              <strong>Chọn PLLN = 336</strong>
+              <p>f_vco = 1 MHz × 336 = <strong>336 MHz</strong> (trong giới hạn 100–432 MHz)</p>
+            </div>
+          </div>
+          <div class="calc-step">
+            <span class="step-num">3</span>
+            <div>
+              <strong>Chọn PLLP = 2</strong>
+              <p>f_SYSCLK = 336 MHz / 2 = <strong>168 MHz</strong> ✓</p>
+            </div>
+          </div>
+          <div class="calc-step">
+            <span class="step-num">4</span>
+            <div>
+              <strong>Kiểm tra PLLQ cho USB</strong>
+              <p>PLLQ = 7 → 336 / 7 = <strong>48 MHz</strong> ✓</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="note-box">
+          <strong>Lưu ý AUTOSAR:</strong> Tất cả giá trị M, N, P, Q phải được khai báo trong
+          <code>Mcu_Cfg.h</code> dưới dạng macro, <em>không được hardcode</em> trong source code.
+          Đây là yêu cầu của tiêu chuẩn về tính cấu hình (configurability).
+        </div>
+
+        <h2>5. Flash Latency — bắt buộc phải set trước khi tăng clock</h2>
+        <p>
+          Flash memory trên STM32 có latency cố định (~30ns). Khi tăng SYSCLK, CPU đọc flash nhanh hơn
+          nhưng flash không kịp trả dữ liệu → <strong>đọc sai</strong>. Phải cấu hình wait states trước:
+        </p>
+        <table class="theory-table">
+          <thead><tr><th>SYSCLK (VDD = 3.3V)</th><th>Flash Latency (WS)</th></tr></thead>
+          <tbody>
+            <tr><td>0 – 30 MHz</td><td>0 WS</td></tr>
+            <tr><td>30 – 60 MHz</td><td>1 WS</td></tr>
+            <tr><td>60 – 90 MHz</td><td>2 WS</td></tr>
+            <tr><td>90 – 120 MHz</td><td>3 WS</td></tr>
+            <tr><td>120 – 150 MHz</td><td>4 WS</td></tr>
+            <tr><td>150 – 168 MHz</td><td>5 WS</td></tr>
+          </tbody>
+        </table>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 2 — ANIMATION
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-block animation">
+      <div class="section-head">
+        <span class="section-icon">🎬</span>
+        <span class="section-label">Animation</span>
+        <span class="section-title-text">PLL từng bước — Tính toán & Tín hiệu</span>
+        <span class="collapse-chevron">›</span>
+      </div>
+      <div class="section-body">
+
+        <div class="anim-container" id="pllAnim">
+          <!-- SVG PLL Block Diagram -->
+          <svg id="pllSvg" viewBox="0 0 780 320" xmlns="http://www.w3.org/2000/svg"
+               style="width:100%;max-width:780px;display:block;margin:0 auto">
+            <defs>
+              <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#888"/>
+              </marker>
+              <marker id="arr-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#1a73e8"/>
+              </marker>
+              <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#34a853"/>
+              </marker>
+            </defs>
+
+            <!-- Background -->
+            <rect width="780" height="320" fill="#0d1117" rx="12"/>
+
+            <!-- Labels top -->
+            <text x="390" y="22" fill="#586069" font-size="11" text-anchor="middle" font-family="monospace">
+              PLL Block Diagram — STM32F4
+            </text>
+
+            <!-- ── Blocks ── -->
+            <!-- HSE -->
+            <rect x="20" y="120" width="80" height="40" rx="6" fill="#1e2d3d" stroke="#1a73e8" stroke-width="1.5" id="b-hse"/>
+            <text x="60" y="136" fill="#93c5fd" font-size="10" text-anchor="middle" font-family="monospace">HSE</text>
+            <text x="60" y="150" fill="#7dd3fc" font-size="9" text-anchor="middle" font-family="monospace">8 MHz</text>
+
+            <!-- ÷M -->
+            <rect x="148" y="115" width="60" height="50" rx="6" fill="#1e2d3d" stroke="#7c3aed" stroke-width="1.5" id="b-m"/>
+            <text x="178" y="136" fill="#c4b5fd" font-size="10" text-anchor="middle" font-family="monospace">÷ M</text>
+            <text x="178" y="151" fill="#a78bfa" font-size="9" text-anchor="middle" font-family="monospace">÷ 8</text>
+            <text x="178" y="163" fill="#7c6fcd" font-size="8" text-anchor="middle" font-family="monospace">→ 1 MHz</text>
+
+            <!-- PD (Phase Det) -->
+            <rect x="258" y="105" width="70" height="70" rx="6" fill="#1e2d3d" stroke="#f59e0b" stroke-width="1.5" id="b-pd"/>
+            <text x="293" y="132" fill="#fcd34d" font-size="10" text-anchor="middle" font-family="monospace">Phase</text>
+            <text x="293" y="146" fill="#fcd34d" font-size="10" text-anchor="middle" font-family="monospace">Detector</text>
+
+            <!-- LPF -->
+            <rect x="378" y="115" width="60" height="50" rx="6" fill="#1e2d3d" stroke="#10b981" stroke-width="1.5" id="b-lpf"/>
+            <text x="408" y="138" fill="#6ee7b7" font-size="10" text-anchor="middle" font-family="monospace">LPF</text>
+            <text x="408" y="152" fill="#34d399" font-size="8" text-anchor="middle" font-family="monospace">Filter</text>
+
+            <!-- VCO -->
+            <rect x="490" y="110" width="70" height="60" rx="6" fill="#1e2d3d" stroke="#ef4444" stroke-width="1.5" id="b-vco"/>
+            <text x="525" y="133" fill="#fca5a5" font-size="10" text-anchor="middle" font-family="monospace">VCO</text>
+            <text x="525" y="148" fill="#f87171" font-size="9" text-anchor="middle" font-family="monospace">336 MHz</text>
+
+            <!-- ÷P -->
+            <rect x="614" y="115" width="60" height="50" rx="6" fill="#1e2d3d" stroke="#7c3aed" stroke-width="1.5" id="b-p"/>
+            <text x="644" y="136" fill="#c4b5fd" font-size="10" text-anchor="middle" font-family="monospace">÷ P</text>
+            <text x="644" y="151" fill="#a78bfa" font-size="9" text-anchor="middle" font-family="monospace">÷ 2</text>
+
+            <!-- SYSCLK output -->
+            <rect x="694" y="120" width="74" height="40" rx="6" fill="#1e3a2a" stroke="#34a853" stroke-width="2" id="b-sys"/>
+            <text x="731" y="136" fill="#86efac" font-size="10" text-anchor="middle" font-family="monospace">SYSCLK</text>
+            <text x="731" y="150" fill="#4ade80" font-size="9" text-anchor="middle" font-family="monospace">168 MHz</text>
+
+            <!-- ÷N feedback label inside VCO area -->
+            <rect x="440" y="222" width="70" height="40" rx="6" fill="#1e2d3d" stroke="#f59e0b" stroke-width="1.5" id="b-n"/>
+            <text x="475" y="238" fill="#fcd34d" font-size="10" text-anchor="middle" font-family="monospace">÷ N</text>
+            <text x="475" y="252" fill="#fbbf24" font-size="9" text-anchor="middle" font-family="monospace">÷ 336</text>
+
+            <!-- ── Arrows (forward path) ── -->
+            <!-- HSE → ÷M -->
+            <line id="l1" x1="100" y1="140" x2="146" y2="140" stroke="#888" stroke-width="1.5" marker-end="url(#arr)"/>
+            <!-- ÷M → PD -->
+            <line id="l2" x1="208" y1="140" x2="256" y2="140" stroke="#888" stroke-width="1.5" marker-end="url(#arr)"/>
+            <!-- PD → LPF -->
+            <line id="l3" x1="328" y1="140" x2="376" y2="140" stroke="#888" stroke-width="1.5" marker-end="url(#arr)"/>
+            <!-- LPF → VCO -->
+            <line id="l4" x1="438" y1="140" x2="488" y2="140" stroke="#888" stroke-width="1.5" marker-end="url(#arr)"/>
+            <!-- VCO → ÷P -->
+            <line id="l5" x1="560" y1="140" x2="612" y2="140" stroke="#888" stroke-width="1.5" marker-end="url(#arr)"/>
+            <!-- ÷P → SYSCLK -->
+            <line id="l6" x1="674" y1="140" x2="692" y2="140" stroke="#888" stroke-width="1.5" marker-end="url(#arr)"/>
+
+            <!-- Feedback path: VCO → ÷N → PD -->
+            <!-- VCO down -->
+            <line id="lf1" x1="525" y1="170" x2="525" y2="242" stroke="#888" stroke-width="1.5"/>
+            <!-- → ÷N -->
+            <line id="lf2" x1="525" y1="242" x2="512" y2="242" stroke="#888" stroke-width="1.5" marker-end="url(#arr)"/>
+            <!-- ÷N left to PD bottom -->
+            <line id="lf3" x1="440" y1="242" x2="293" y2="242" stroke="#888" stroke-width="1.5"/>
+            <!-- PD bottom -->
+            <line id="lf4" x1="293" y1="242" x2="293" y2="177" stroke="#888" stroke-width="1.5" marker-end="url(#arr)"/>
+
+            <!-- Feedback label -->
+            <text x="410" y="260" fill="#586069" font-size="9" text-anchor="middle" font-family="monospace">
+              Vòng phản hồi (lock loop)
+            </text>
+
+            <!-- Step highlight overlay (animated) -->
+            <rect id="step-hl" x="0" y="0" width="0" height="0" rx="8" fill="rgba(255,255,100,0.08)" stroke="rgba(255,255,100,0.4)" stroke-width="2"/>
+          </svg>
+
+          <!-- Step controls -->
+          <div class="anim-steps">
+            <div class="step-indicator">
+              Bước <span id="stepNum">0</span> / 5
+            </div>
+            <div class="step-desc" id="stepDesc">Nhấn "Tiếp theo" để bắt đầu mô phỏng.</div>
+          </div>
+          <div class="anim-controls">
+            <button class="anim-btn" id="pllPrev" disabled>← Trước</button>
+            <button class="anim-btn primary" id="pllNext">Tiếp theo →</button>
+            <button class="anim-btn" id="pllReset">↺ Lại đầu</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 3 — CODE
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-block code-section">
+      <div class="section-head">
+        <span class="section-icon">💻</span>
+        <span class="section-label">Code</span>
+        <span class="section-title-text">Cấu hình PLL theo chuẩn AUTOSAR MCAL</span>
+        <span class="collapse-chevron">›</span>
+      </div>
+      <div class="section-body">
+
+        <div class="code-tabs">
+          <button class="code-tab" data-tab="cfg">Mcu_Cfg.h</button>
+          <button class="code-tab" data-tab="init">Mcu.c — PLL Init</button>
+          <button class="code-tab" data-tab="flash">Flash Latency</button>
+        </div>
+
+        <!-- Mcu_Cfg.h -->
+        <div class="code-pane" data-tab="cfg">
+          <div class="code-block-wrap">
+            <button class="copy-btn">Copy</button>
+            <pre><code class="language-c">/**
+ * Mcu_Cfg.h — PLL Configuration (AUTOSAR 4.x)
+ * Target: STM32F407 @ 168 MHz from HSE 8 MHz
+ */
+#ifndef MCU_CFG_H
+#define MCU_CFG_H
+
+/* ── PLL Source ──────────────────────────────── */
+#define MCU_PLL_SRC         RCC_PLLSOURCE_HSE   /* HSE = 8 MHz */
+
+/* ── PLL Multiplier/Dividers ─────────────────── */
+#define MCU_PLLM            8U    /* f_vco_in = 8/8  = 1 MHz   */
+#define MCU_PLLN            336U  /* f_vco    = 1*336 = 336 MHz  */
+#define MCU_PLLP            2U    /* SYSCLK   = 336/2 = 168 MHz  */
+#define MCU_PLLQ            7U    /* USB CLK  = 336/7 = 48 MHz   */
+
+/* ── Bus prescalers ──────────────────────────── */
+#define MCU_AHB_PRESCALER   RCC_SYSCLK_DIV1    /* HCLK  = 168 MHz */
+#define MCU_APB1_PRESCALER  RCC_HCLK_DIV4      /* PCLK1 =  42 MHz (max 42) */
+#define MCU_APB2_PRESCALER  RCC_HCLK_DIV2      /* PCLK2 =  84 MHz (max 84) */
+
+/* ── Flash wait states ───────────────────────── */
+#define MCU_FLASH_LATENCY   FLASH_LATENCY_5     /* 5 WS for 168 MHz, 3.3V */
+
+/* ── MCU Clock modes ─────────────────────────── */
+typedef enum {
+    MCU_CLOCK_MODE_HSI     = 0x00U,
+    MCU_CLOCK_MODE_HSE     = 0x01U,
+    MCU_CLOCK_MODE_PLL     = 0x02U,
+} Mcu_ClockModeType;
+
+#define MCU_CLOCK_MODE_DEFAULT   MCU_CLOCK_MODE_PLL
+
+#endif /* MCU_CFG_H */
+</code></pre>
+          </div>
+        </div>
+
+        <!-- Mcu.c PLL Init -->
+        <div class="code-pane" data-tab="init">
+          <div class="code-block-wrap">
+            <button class="copy-btn">Copy</button>
+            <pre><code class="language-c">/**
+ * Mcu.c — Mcu_InitClock() implementation
+ * Theo AUTOSAR SWS_Mcu_00210: hàm phải set flash latency
+ * TRƯỚC khi switch sang PLL, để tránh đọc flash sai.
+ */
+#include "Mcu.h"
+#include "Mcu_Cfg.h"
+
+Std_ReturnType Mcu_InitClock(Mcu_ClockType ClockSetting)
+{
+    RCC_OscInitTypeDef osc = {0};
+    RCC_ClkInitTypeDef clk = {0};
+
+    /* Step 1 — Bật HSE và cấu hình PLL */
+    osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    osc.HSEState       = RCC_HSE_ON;
+    osc.PLL.PLLState   = RCC_PLL_ON;
+    osc.PLL.PLLSource  = MCU_PLL_SRC;
+    osc.PLL.PLLM       = MCU_PLLM;   /* 8  */
+    osc.PLL.PLLN       = MCU_PLLN;   /* 336 */
+    osc.PLL.PLLP       = MCU_PLLP;   /* 2  */
+    osc.PLL.PLLQ       = MCU_PLLQ;   /* 7  */
+
+    if (HAL_RCC_OscConfig(&osc) != HAL_OK) {
+        return E_NOT_OK;
+    }
+
+    /* Step 2 — Flash latency PHẢI set trước khi tăng SYSCLK */
+    __HAL_FLASH_SET_LATENCY(MCU_FLASH_LATENCY);
+    /* Đọc lại để xác nhận đã ghi thành công (ARM write buffer) */
+    if (__HAL_FLASH_GET_LATENCY() != MCU_FLASH_LATENCY) {
+        return E_NOT_OK;
+    }
+
+    /* Step 3 — Switch bus clocks sang PLL */
+    clk.ClockType      = (RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
+                           RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2);
+    clk.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
+    clk.AHBCLKDivider  = MCU_AHB_PRESCALER;   /* ÷1  → 168 MHz */
+    clk.APB1CLKDivider = MCU_APB1_PRESCALER;  /* ÷4  →  42 MHz */
+    clk.APB2CLKDivider = MCU_APB2_PRESCALER;  /* ÷2  →  84 MHz */
+
+    if (HAL_RCC_ClockConfig(&clk, MCU_FLASH_LATENCY) != HAL_OK) {
+        return E_NOT_OK;
+    }
+
+    return E_OK;
+}
+
+/* Mcu_DistributePllClock() — unlock PLL output tới peripherals */
+Std_ReturnType Mcu_DistributePllClock(void)
+{
+    /* Trên STM32 HAL, clock đã được phân phối sau HAL_RCC_ClockConfig.
+     * Hàm này dùng để trigger callback notify tới BSW nếu cần. */
+    return E_OK;
+}
+</code></pre>
+          </div>
+        </div>
+
+        <!-- Flash Latency -->
+        <div class="code-pane" data-tab="flash">
+          <div class="code-block-wrap">
+            <button class="copy-btn">Copy</button>
+            <pre><code class="language-c">/**
+ * Mcu_FlashLatency.c — Tại sao phải set TRƯỚC khi tăng clock?
+ *
+ * Thứ tự ĐÚNG:
+ *   1. Set Flash Latency = 5 WS
+ *   2. Tăng SYSCLK lên 168 MHz (switch sang PLL)
+ *
+ * Thứ tự SAI (dễ gây bug khó tìm):
+ *   1. Tăng SYSCLK lên 168 MHz
+ *   2. Set Flash Latency
+ *   → Trong khoảng thời gian giữa 2 bước, CPU đọc flash
+ *     với 168 MHz nhưng chỉ 0 WS → đọc INSTRUCTION SAI
+ *     → undefined behavior, hard fault, hoặc chạy code lạ.
+ */
+
+/* Macro kiểm tra flash latency đúng theo SYSCLK (3.3V) */
+#define MCU_GET_FLASH_LATENCY(sysclk_mhz) \
+    ((sysclk_mhz) <=  30 ? FLASH_LATENCY_0 : \
+     (sysclk_mhz) <=  60 ? FLASH_LATENCY_1 : \
+     (sysclk_mhz) <=  90 ? FLASH_LATENCY_2 : \
+     (sysclk_mhz) <= 120 ? FLASH_LATENCY_3 : \
+     (sysclk_mhz) <= 150 ? FLASH_LATENCY_4 : \
+                            FLASH_LATENCY_5)
+
+/* Áp dụng: */
+static Std_ReturnType Mcu_SetFlashLatency(uint32 SysClkMhz)
+{
+    uint32 ws = MCU_GET_FLASH_LATENCY(SysClkMhz);
+    __HAL_FLASH_SET_LATENCY(ws);
+    if (__HAL_FLASH_GET_LATENCY() != ws) return E_NOT_OK;
+    return E_OK;
+}
+</code></pre>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 4 — QUIZ
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-block quiz">
+      <div class="section-head">
+        <span class="section-icon">🧠</span>
+        <span class="section-label">Quiz</span>
+        <span class="section-title-text">Kiểm tra hiểu biết về PLL</span>
+        <span class="collapse-chevron">›</span>
+      </div>
+      <div class="section-body">
+        <form class="quiz-form">
+
+          <!-- Q1 -->
+          <div class="quiz-question">
+            <p class="q-text">1. Với HSE = 16 MHz, PLLM = 8, PLLN = 168, PLLP = 2.
+               Tần số SYSCLK là bao nhiêu?</p>
+            <div class="q-options">
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q1"> 168 MHz
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q1"> 84 MHz
+              </label>
+              <label class="q-option" data-correct="true">
+                <input type="radio" name="q1"> 168 MHz — f = (16/8)×168/2 = 168 MHz
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q1"> 336 MHz
+              </label>
+            </div>
+            <div class="q-feedback">
+              <strong>Đúng!</strong> f_vco_in = 16/8 = 2 MHz; f_vco = 2×168 = 336 MHz;
+              SYSCLK = 336/2 = 168 MHz. Lưu ý VCO input cần ~1–2 MHz là tốt nhất.
+            </div>
+          </div>
+
+          <!-- Q2 -->
+          <div class="quiz-question">
+            <p class="q-text">2. Tại sao phải set Flash Latency TRƯỚC khi switch sang PLL?</p>
+            <div class="q-options">
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q2"> Vì PLL cần flash chạy chậm hơn để ổn định
+              </label>
+              <label class="q-option" data-correct="true">
+                <input type="radio" name="q2"> Vì nếu clock tăng trước, CPU có thể đọc instruction sai từ flash chưa kịp add wait state
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q2"> Vì HAL yêu cầu thứ tự đó trong API
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q2"> Không quan trọng, thứ tự nào cũng được
+              </label>
+            </div>
+            <div class="q-feedback">
+              <strong>Đúng!</strong> Flash read cycle ~30ns cố định. Ở 168 MHz, CPU cycle chỉ ~6ns.
+              Nếu không có wait state, CPU đọc flash trước khi dữ liệu sẵn sàng → đọc instruction sai →
+              hard fault hoặc undefined behavior.
+            </div>
+          </div>
+
+          <!-- Q3 -->
+          <div class="quiz-question">
+            <p class="q-text">3. Trong AUTOSAR MCAL, các hằng số PLLM, PLLN, PLLP nên được đặt ở đâu?</p>
+            <div class="q-options">
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q3"> Hardcode trực tiếp trong Mcu.c để dễ đọc
+              </label>
+              <label class="q-option" data-correct="true">
+                <input type="radio" name="q3"> Trong Mcu_Cfg.h dưới dạng macro, tách biệt với implementation
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q3"> Trong main.c vì đó là nơi khởi động hệ thống
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q3"> Trong linker script để tối ưu flash
+              </label>
+            </div>
+            <div class="q-feedback">
+              <strong>Đúng!</strong> AUTOSAR yêu cầu tính <em>configurability</em> — mọi tham số
+              cấu hình phải nằm trong file <code>_Cfg.h</code> được sinh ra bởi tool, không được
+              hardcode trong implementation. Điều này cho phép thay đổi cấu hình mà không sửa code.
+            </div>
+          </div>
+
+          <div class="quiz-actions">
+            <button type="button" class="quiz-submit">Nộp bài</button>
+            <div class="quiz-result"></div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Navigation ─────────────────────────────────────────── -->
+    <div class="lesson-nav">
+      <a class="nav-btn prev" href="01-clock-tree.html">← Clock Tree</a>
+      <button class="complete-btn">○ Đánh dấu hoàn thành</button>
+      <a class="nav-btn next" href="03-mcal-api.html">MCU Driver API →</a>
+    </div>
+
+  </main>
+</div><!-- /course-layout -->
+
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-c.min.js"></script>
+<script src="../../assets/js/course.js"></script>
+
+<!-- PLL Animation -->
+<script>
+(function () {
+  const STEPS = [
+    {
+      num: 1,
+      desc: '<strong>Nguồn vào: HSE 8 MHz</strong> — Bộ dao động thạch anh bên ngoài chip. ' +
+            'Chính xác và ổn định hơn HSI nhưng cần thời gian khởi động (~2ms).',
+      hl: { x: 15, y: 110, w: 95, h: 60 },
+      lines: ['l1']
+    },
+    {
+      num: 2,
+      desc: '<strong>÷M (Pre-divider = 8)</strong> — Chia HSE 8 MHz xuống còn 1 MHz. ' +
+            'VCO hoạt động tốt nhất với đầu vào 1–2 MHz. PLLM phải đảm bảo điều kiện này.',
+      hl: { x: 143, y: 105, w: 75, h: 70 },
+      lines: ['l2']
+    },
+    {
+      num: 3,
+      desc: '<strong>VCO × N (×336)</strong> — Bộ dao động điều khiển điện áp nhân 1 MHz lên ' +
+            '336 MHz. Phase Detector và LPF giữ cho VCO bám theo tần số tham chiếu.',
+      hl: { x: 253, y: 95, w: 315, h: 90 },
+      lines: ['l3', 'l4', 'lf1', 'lf2', 'lf3', 'lf4']
+    },
+    {
+      num: 4,
+      desc: '<strong>÷P (Post-divider = 2)</strong> — Chia VCO 336 MHz xuống còn 168 MHz. ' +
+            'PLLP chỉ có thể là 2, 4, 6 hoặc 8. Đây là SYSCLK của CPU.',
+      hl: { x: 610, y: 105, w: 75, h: 70 },
+      lines: ['l5', 'l6']
+    },
+    {
+      num: 5,
+      desc: '<strong>SYSCLK = 168 MHz</strong> — Tần số lõi CPU và AHB bus. Từ đây, ' +
+            'APB1 (/4 → 42 MHz) và APB2 (/2 → 84 MHz) cấp clock cho peripherals.',
+      hl: { x: 689, y: 110, w: 85, h: 60 },
+      lines: ['l1','l2','l3','l4','l5','l6','lf1','lf2','lf3','lf4']
+    }
+  ];
+
+  let step = 0;
+  const svg   = document.getElementById('pllSvg');
+  const hlEl  = document.getElementById('step-hl');
+  const numEl = document.getElementById('stepNum');
+  const descEl= document.getElementById('stepDesc');
+  const prevBtn = document.getElementById('pllPrev');
+  const nextBtn = document.getElementById('pllNext');
+  const resetBtn= document.getElementById('pllReset');
+
+  const lineEls = {};
+  ['l1','l2','l3','l4','l5','l6','lf1','lf2','lf3','lf4'].forEach(id => {
+    lineEls[id] = document.getElementById(id);
+  });
+
+  function render() {
+    numEl.textContent = step;
+    prevBtn.disabled = step === 0;
+    nextBtn.disabled = step === STEPS.length;
+    nextBtn.textContent = step === STEPS.length ? '✓ Xong' : 'Tiếp theo →';
+
+    // reset lines
+    Object.values(lineEls).forEach(l => {
+      if (l) { l.setAttribute('stroke', '#888'); l.setAttribute('marker-end', 'url(#arr)'); }
+    });
+
+    if (step === 0) {
+      hlEl.setAttribute('width', 0);
+      descEl.innerHTML = 'Nhấn "Tiếp theo" để bắt đầu mô phỏng.';
+      return;
+    }
+
+    const s = STEPS[step - 1];
+    descEl.innerHTML = s.desc;
+
+    // highlight box
+    hlEl.setAttribute('x', s.hl.x);
+    hlEl.setAttribute('y', s.hl.y);
+    hlEl.setAttribute('width', s.hl.w);
+    hlEl.setAttribute('height', s.hl.h);
+
+    // animate lines
+    s.lines.forEach(id => {
+      const el = lineEls[id];
+      if (el) {
+        el.setAttribute('stroke', '#1a73e8');
+        el.setAttribute('marker-end', 'url(#arr-blue)');
+      }
+    });
+  }
+
+  nextBtn.addEventListener('click', () => { if (step < STEPS.length) { step++; render(); } });
+  prevBtn.addEventListener('click', () => { if (step > 0) { step--; render(); } });
+  resetBtn.addEventListener('click', () => { step = 0; render(); });
+
+  render();
+})();
+</script>
+
+</body>
+</html>

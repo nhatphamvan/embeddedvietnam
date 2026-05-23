@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCAL Course — AUTOSAR Microcontroller Abstraction Layer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1a73e8;
+      --primary-dark: #1558b0;
+      --success: #34a853;
+      --text: #2d2d2d;
+      --text-muted: #666;
+      --bg: #f8f9fa;
+      --card-bg: #fff;
+      --border: #e0e0e0;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── Hero ────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #0d1b35 0%, #1a3a6e 60%, #1a73e8 100%);
+      color: #fff;
+      padding: clamp(3rem, 8vw, 5rem) clamp(1rem, 5vw, 2rem);
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 {
+      font-size: clamp(1.75rem, 5vw, 3rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: .75rem;
+    }
+    .hero h1 span { color: #93c5fd; }
+    .hero p {
+      font-size: clamp(.95rem, 2.5vw, 1.15rem);
+      color: rgba(255,255,255,.8);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+    .hero-meta {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      font-size: 14px;
+      color: rgba(255,255,255,.7);
+    }
+    .hero-meta span { display: flex; align-items: center; gap: 6px; }
+
+    /* ── Progress banner ──────────────────────────────── */
+    .progress-banner {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem clamp(1rem, 5vw, 2rem);
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .progress-banner .label { font-size: 14px; color: var(--text-muted); white-space: nowrap; }
+    .progress-track {
+      flex: 1;
+      min-width: 200px;
+      height: 8px;
+      background: #e8eaed;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-track-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--success));
+      border-radius: 99px;
+      transition: width .4s ease;
+    }
+    .progress-banner .count { font-size: 14px; font-weight: 600; white-space: nowrap; }
+
+    /* ── Main content ─────────────────────────────────── */
+    .page-wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 2rem);
+    }
+
+    .section-title {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── Module grid ──────────────────────────────────── */
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .module-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .module-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+
+    .module-card-header {
+      padding: 1.25rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+    .module-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .module-icon.mcu    { background: #e8f0fe; }
+    .module-icon.com    { background: #e6f4ea; }
+    .module-icon.adc    { background: #fef7e0; }
+    .module-icon.locked { background: #f1f3f4; }
+
+    .module-card-header h2 { font-size: 1rem; font-weight: 700; }
+    .module-card-header p  { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
+
+    .lesson-list { padding: .5rem 0; }
+    .lesson-item {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .6rem 1.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: .875rem;
+      transition: background .15s;
+      position: relative;
+    }
+    .lesson-item:hover { background: var(--bg); }
+    .lesson-item.locked { color: var(--text-muted); cursor: default; }
+
+    .lesson-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      flex-shrink: 0;
+      background: #fff;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+    .lesson-dot.done  { background: var(--success); border-color: var(--success); color: #fff; }
+    .lesson-dot.first { border-color: var(--primary); background: var(--primary); color: #fff; }
+
+    .lesson-item .tags {
+      margin-left: auto;
+      display: flex;
+      gap: 4px;
+    }
+    .tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 10px;
+      letter-spacing: .04em;
+    }
+    .tag.theory    { background: #e8f0fe; color: #1558b0; }
+    .tag.anim      { background: #fce8ff; color: #7b2fa8; }
+    .tag.code      { background: #e6f4ea; color: #1e7e34; }
+    .tag.quiz      { background: #fff3e0; color: #e65100; }
+    .tag.coming    { background: #f1f3f4; color: #80868b; }
+
+    .module-card-footer {
+      padding: .75rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+    .module-progress-bar {
+      flex: 1;
+      height: 4px;
+      background: #e8eaed;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .module-progress-fill {
+      height: 100%;
+      background: var(--success);
+      border-radius: 99px;
+      transition: width .4s;
+    }
+    .module-progress-text { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+    /* ── Start CTA ────────────────────────────────────── */
+    .start-cta {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 2rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+    .start-cta .cta-text h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: .25rem; }
+    .start-cta .cta-text p  { font-size: .875rem; opacity: .85; }
+    .start-cta a {
+      margin-left: auto;
+      background: #fff;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: .9rem;
+      padding: .65rem 1.5rem;
+      border-radius: 8px;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: opacity .2s;
+    }
+    .start-cta a:hover { opacity: .9; }
+
+    /* ── About section ────────────────────────────────── */
+    .about-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+    .about-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+    .about-card .icon { font-size: 1.5rem; margin-bottom: .5rem; }
+    .about-card h4 { font-size: .9rem; font-weight: 700; margin-bottom: .25rem; }
+    .about-card p  { font-size: .8rem; color: var(--text-muted); }
+
+    /* ── Footer ──────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.5rem clamp(1rem, 5vw, 2rem);
+      text-align: center;
+      font-size: .8rem;
+      color: var(--text-muted);
+    }
+    footer a { color: var(--primary); text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .start-cta { flex-direction: column; }
+      .start-cta a { margin-left: 0; width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ Hero ══════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-badge">AUTOSAR MCAL</div>
+  <h1>Khóa học <span>MCAL Driver</span></h1>
+  <p>Microcontroller Abstraction Layer — từ lý thuyết đến triển khai AUTOSAR trên STM32</p>
+  <div class="hero-meta">
+    <span>📦 3 Module</span>
+    <span>📄 9 bài học</span>
+    <span>⚡ Miễn phí</span>
+    <span>🇻🇳 Tiếng Việt</span>
+  </div>
+</section>
+
+<!-- ══ Progress banner ══════════════════════════════════════════ -->
+<div class="progress-banner" id="progressBanner">
+  <span class="label">Tiến độ của bạn</span>
+  <div class="progress-track">
+    <div class="progress-track-fill" id="globalFill" style="width:0%"></div>
+  </div>
+  <span class="count" id="globalCount">0 / 9 bài</span>
+</div>
+
+<!-- ══ Page content ═════════════════════════════════════════════ -->
+<div class="page-wrap">
+
+  <!-- Start CTA -->
+  <div class="start-cta">
+    <div class="cta-text">
+      <h3>Bắt đầu từ bài đầu tiên</h3>
+      <p>Clock Tree — cách vi điều khiển tạo ra xung nhịp từ HSE/HSI qua PLL</p>
+    </div>
+    <a href="modules/01-mcu/01-clock-tree.html">Bắt đầu học →</a>
+  </div>
+
+  <!-- Modules -->
+  <div class="section-title">Nội dung khóa học</div>
+  <div class="modules-grid">
+
+    <!-- Module 1: MCU -->
+    <div class="module-card">
+      <div class="module-card-header">
+        <div class="module-icon mcu">🔧</div>
+        <div>
+          <h2>Module 1 — MCU</h2>
+          <p>Clock, PLL, MCU Driver API</p>
+        </div>
+      </div>
+      <div class="lesson-list">
+        <a class="lesson-item" href="modules/01-mcu/01-clock-tree.html">
+          <span class="lesson-dot first" data-lesson="mcu-01-clock-tree">1</span>
+          Clock Tree
+          <span class="tags">
+            <span class="tag theory">Lý thuyết</span>
+            <span class="tag anim">Animation</span>
+            <span class="tag code">Code</span>
+            <span class="tag quiz">Quiz</span>
+          </span>
+        </a>
+        <a class="lesson-item" href="modules/01-mcu/02-pll.html">
+          <span class="lesson-dot" data-lesson="mcu-02-pll">2</span>
+          PLL — Phase Locked Loop
+          <span class="tags">
+            <span class="tag theory">Lý thuyết</span>
+            <span class="tag anim">Animation</span>
+            <span class="tag code">Code</span>
+            <span class="tag quiz">Quiz</span>
+          </span>
+        </a>
+        <a class="lesson-item" href="modules/01-mcu/03-mcal-api.html">
+          <span class="lesson-dot" data-lesson="mcu-03-mcal-api">3</span>
+          MCU Driver API (MCAL)
+          <span class="tags">
+            <span class="tag theory">Lý thuyết</span>
+            <span class="tag code">Code</span>
+            <span class="tag quiz">Quiz</span>
+          </span>
+        </a>
+      </div>
+      <div class="module-card-footer">
+        <div class="module-progress-bar">
+          <div class="module-progress-fill" id="mod1Fill" style="width:0%"></div>
+        </div>
+        <span class="module-progress-text" id="mod1Count">0/3 bài</span>
+      </div>
+    </div>
+
+    <!-- Module 2: Communication -->
+    <div class="module-card">
+      <div class="module-card-header">
+        <div class="module-icon com">📡</div>
+        <div>
+          <h2>Module 2 — Communication</h2>
+          <p>SPI, I2C, UART Driver</p>
+        </div>
+      </div>
+      <div class="lesson-list">
+        <a class="lesson-item locked" href="#">
+          <span class="lesson-dot" data-lesson="com-01-spi">4</span>
+          SPI Driver
+          <span class="tags"><span class="tag coming">Sắp ra</span></span>
+        </a>
+        <a class="lesson-item locked" href="#">
+          <span class="lesson-dot" data-lesson="com-02-i2c">5</span>
+          I2C Driver
+          <span class="tags"><span class="tag coming">Sắp ra</span></span>
+        </a>
+        <a class="lesson-item locked" href="#">
+          <span class="lesson-dot" data-lesson="com-03-uart">6</span>
+          UART Driver
+          <span class="tags"><span class="tag coming">Sắp ra</span></span>
+        </a>
+      </div>
+      <div class="module-card-footer">
+        <div class="module-progress-bar">
+          <div class="module-progress-fill" id="mod2Fill" style="width:0%"></div>
+        </div>
+        <span class="module-progress-text" id="mod2Count">0/3 bài</span>
+      </div>
+    </div>
+
+    <!-- Module 3: ADC / PWM -->
+    <div class="module-card">
+      <div class="module-card-header">
+        <div class="module-icon adc">⚡</div>
+        <div>
+          <h2>Module 3 — ADC / PWM</h2>
+          <p>ADC, PWM, GPT Driver</p>
+        </div>
+      </div>
+      <div class="lesson-list">
+        <a class="lesson-item locked" href="#">
+          <span class="lesson-dot" data-lesson="adc-01">7</span>
+          ADC Driver
+          <span class="tags"><span class="tag coming">Sắp ra</span></span>
+        </a>
+        <a class="lesson-item locked" href="#">
+          <span class="lesson-dot" data-lesson="pwm-01">8</span>
+          PWM Driver
+          <span class="tags"><span class="tag coming">Sắp ra</span></span>
+        </a>
+        <a class="lesson-item locked" href="#">
+          <span class="lesson-dot" data-lesson="gpt-01">9</span>
+          GPT Driver (Timer)
+          <span class="tags"><span class="tag coming">Sắp ra</span></span>
+        </a>
+      </div>
+      <div class="module-card-footer">
+        <div class="module-progress-bar">
+          <div class="module-progress-fill" id="mod3Fill" style="width:0%"></div>
+        </div>
+        <span class="module-progress-text" id="mod3Count">0/3 bài</span>
+      </div>
+    </div>
+
+  </div><!-- /modules-grid -->
+
+  <!-- About -->
+  <div class="section-title">Bạn sẽ học được gì?</div>
+  <div class="about-grid">
+    <div class="about-card">
+      <div class="icon">🏗️</div>
+      <h4>Kiến trúc AUTOSAR MCAL</h4>
+      <p>Hiểu cấu trúc phân lớp BSW và vai trò của MCAL trong toàn bộ stack</p>
+    </div>
+    <div class="about-card">
+      <div class="icon">⏱️</div>
+      <h4>Clock & PLL</h4>
+      <p>Cấu hình clock tree, tính toán PLL, phân phối xung nhịp cho các bus</p>
+    </div>
+    <div class="about-card">
+      <div class="icon">📡</div>
+      <h4>Communication Drivers</h4>
+      <p>SPI, I2C, UART theo chuẩn AUTOSAR — init, send, receive, callback</p>
+    </div>
+    <div class="about-card">
+      <div class="icon">📝</div>
+      <h4>Code thực tế</h4>
+      <p>Mỗi bài kèm code AUTOSAR hoàn chỉnh chạy trên STM32 Nucleo</p>
+    </div>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<footer>
+  <p>© 2025 <a href="https://embedded.io.vn">Embedded RTOS Vietnam</a> — Khóa học AUTOSAR MCAL miễn phí</p>
+</footer>
+
+<script>
+(function () {
+  const COURSE_KEY = 'mcal_progress';
+  const ALL_LESSONS = [
+    'mcu-01-clock-tree','mcu-02-pll','mcu-03-mcal-api',
+    'com-01-spi','com-02-i2c','com-03-uart',
+    'adc-01','pwm-01','gpt-01'
+  ];
+  const MOD_LESSONS = [
+    ['mcu-01-clock-tree','mcu-02-pll','mcu-03-mcal-api'],
+    ['com-01-spi','com-02-i2c','com-03-uart'],
+    ['adc-01','pwm-01','gpt-01']
+  ];
+
+  function getProgress() {
+    try { return JSON.parse(localStorage.getItem(COURSE_KEY) || '{}'); }
+    catch (_) { return {}; }
+  }
+
+  function refresh() {
+    const p = getProgress();
+    const total = ALL_LESSONS.length;
+    let done = 0;
+
+    // Dot icons
+    ALL_LESSONS.forEach(id => {
+      const dot = document.querySelector(`.lesson-dot[data-lesson="${id}"]`);
+      if (!dot) return;
+      if (p[id]) { done++; dot.classList.add('done'); dot.textContent = '✓'; }
+      else { dot.classList.remove('done'); }
+    });
+
+    // Global bar
+    document.getElementById('globalFill').style.width = Math.round(done / total * 100) + '%';
+    document.getElementById('globalCount').textContent = done + ' / ' + total + ' bài';
+
+    // Per-module bars
+    MOD_LESSONS.forEach((ids, i) => {
+      const modDone = ids.filter(id => !!p[id]).length;
+      document.getElementById('mod' + (i+1) + 'Fill').style.width = Math.round(modDone / ids.length * 100) + '%';
+      document.getElementById('mod' + (i+1) + 'Count').textContent = modDone + '/' + ids.length + ' bài';
+    });
+  }
+
+  refresh();
+})();
+</script>
+</body>
+</html>

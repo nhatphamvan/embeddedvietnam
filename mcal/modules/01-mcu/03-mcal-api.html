@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCU Driver API — Module MCU | MCAL Course</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/course.css">
+</head>
+
+<body data-lesson-id="mcu-03-mcal-api">
+
+<!-- ══ Top bar ══════════════════════════════════════════════════ -->
+<header class="course-topbar">
+  <div class="topbar-logo">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <rect width="20" height="20" rx="5" fill="#1a73e8"/>
+      <path d="M5 10h10M10 5v10" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    MCAL Course
+  </div>
+  <div class="topbar-breadcrumb">
+    <span class="sep">›</span>
+    <span>Module MCU</span>
+    <span class="sep">›</span>
+    <span class="current">MCU Driver API</span>
+  </div>
+  <div class="topbar-right">
+    <a href="../../index.html" style="font-size:13px;color:var(--text-muted)">← Tổng quan</a>
+  </div>
+</header>
+
+<div class="progress-bar-wrap">
+  <div class="progress-bar-fill" style="width:0%"></div>
+</div>
+
+<div class="course-layout">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────── -->
+  <nav class="course-sidebar">
+    <div class="sidebar-header">Nội dung khóa học</div>
+
+    <div class="sidebar-module open">
+      <div class="sidebar-module-title">
+        <span class="mod-icon">🔧</span>Module 1 — MCU
+        <span class="chevron">›</span>
+      </div>
+      <div class="sidebar-lessons">
+        <a class="sidebar-lesson" href="01-clock-tree.html" data-id="mcu-01-clock-tree">
+          Clock Tree <span class="lesson-status"></span>
+        </a>
+        <a class="sidebar-lesson" href="02-pll.html" data-id="mcu-02-pll">
+          PLL <span class="lesson-status"></span>
+        </a>
+        <a class="sidebar-lesson active" href="03-mcal-api.html" data-id="mcu-03-mcal-api">
+          MCU Driver API <span class="lesson-status"></span>
+        </a>
+      </div>
+    </div>
+
+    <div class="sidebar-module">
+      <div class="sidebar-module-title">
+        <span class="mod-icon">📡</span>Module 2 — Communication
+        <span class="chevron">›</span>
+      </div>
+      <div class="sidebar-lessons">
+        <a class="sidebar-lesson" href="#" data-id="com-01-spi">SPI Driver <span class="lesson-status"></span></a>
+        <a class="sidebar-lesson" href="#" data-id="com-02-i2c">I2C Driver <span class="lesson-status"></span></a>
+        <a class="sidebar-lesson" href="#" data-id="com-03-uart">UART Driver <span class="lesson-status"></span></a>
+      </div>
+    </div>
+
+    <div class="sidebar-module">
+      <div class="sidebar-module-title">
+        <span class="mod-icon">⚡</span>Module 3 — ADC / PWM
+        <span class="chevron">›</span>
+      </div>
+      <div class="sidebar-lessons">
+        <a class="sidebar-lesson" href="#" data-id="adc-01">ADC Driver <span class="lesson-status"></span></a>
+        <a class="sidebar-lesson" href="#" data-id="pwm-01">PWM Driver <span class="lesson-status"></span></a>
+        <a class="sidebar-lesson" href="#" data-id="gpt-01">GPT Driver <span class="lesson-status"></span></a>
+      </div>
+    </div>
+
+    <button class="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+  </nav>
+
+  <!-- ── Main ────────────────────────────────────────────────── -->
+  <main class="course-main">
+    <div class="lesson-header">
+      <div class="lesson-meta">Bài 3 / Module 1 — MCU</div>
+      <h1 class="lesson-title">MCU Driver API (AUTOSAR MCAL)</h1>
+      <p class="lesson-desc">
+        Tổng hợp toàn bộ AUTOSAR MCU Driver API: các hàm bắt buộc, tùy chọn, kiểu dữ liệu chuẩn,
+        trình tự khởi động đúng, và cách tích hợp vào EcuM (ECU Manager).
+      </p>
+      <div class="lesson-tags">
+        <span class="ltag ltag-theory">Lý thuyết</span>
+        <span class="ltag ltag-code">Code</span>
+        <span class="ltag ltag-quiz">Quiz</span>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 1 — THEORY
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-block theory">
+      <div class="section-head">
+        <span class="section-icon">📖</span>
+        <span class="section-label">Lý thuyết</span>
+        <span class="section-title-text">AUTOSAR MCU Driver — Kiến trúc & API</span>
+        <span class="collapse-chevron">›</span>
+      </div>
+      <div class="section-body">
+
+        <h2>1. MCU Driver trong stack AUTOSAR</h2>
+        <p>
+          MCU Driver nằm ở tầng <strong>MCAL (Microcontroller Abstraction Layer)</strong> — tầng thấp nhất
+          của BSW (Basic Software). Nó trực tiếp điều khiển hardware registers của vi điều khiển.
+        </p>
+
+        <div class="layer-diagram">
+          <div class="layer app">Application Layer</div>
+          <div class="layer rte">RTE (Runtime Environment)</div>
+          <div class="layer bsw-high">BSW — Services Layer (OS, NvM, Com…)</div>
+          <div class="layer bsw-mid">BSW — Hardware Abstraction (ECUAL)</div>
+          <div class="layer mcal active">MCAL — MCU Driver ← Bài này</div>
+          <div class="layer hw">STM32 Hardware Registers</div>
+        </div>
+
+        <p>MCU Driver cung cấp dịch vụ:</p>
+        <ul>
+          <li>Khởi tạo MCU hardware (clock, power)</li>
+          <li>Phân phối PLL clock tới peripherals</li>
+          <li>Quản lý Reset — đọc lý do reset, thực hiện software reset</li>
+          <li>Quản lý Power Mode — Normal, Sleep, DeepSleep, Halt</li>
+          <li>Cung cấp RAM section initialization</li>
+        </ul>
+
+        <h2>2. Các hàm API bắt buộc (Mandatory)</h2>
+        <table class="theory-table">
+          <thead><tr><th>API</th><th>Mô tả</th><th>Gọi bởi</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>Mcu_Init()</code></td>
+              <td>Khởi tạo MCU driver, áp dụng cấu hình cơ bản</td>
+              <td>EcuM (startup)</td>
+            </tr>
+            <tr>
+              <td><code>Mcu_InitRamSection()</code></td>
+              <td>Khởi tạo vùng RAM (clear/copy từ flash)</td>
+              <td>EcuM (startup)</td>
+            </tr>
+            <tr>
+              <td><code>Mcu_InitClock()</code></td>
+              <td>Cấu hình và kích hoạt clock (PLL, prescalers)</td>
+              <td>EcuM (startup)</td>
+            </tr>
+            <tr>
+              <td><code>Mcu_DistributePllClock()</code></td>
+              <td>Unlock PLL clock phân phối tới peripherals</td>
+              <td>EcuM (sau lock PLL)</td>
+            </tr>
+            <tr>
+              <td><code>Mcu_GetPllStatus()</code></td>
+              <td>Kiểm tra PLL đã lock chưa</td>
+              <td>EcuM (polling)</td>
+            </tr>
+            <tr>
+              <td><code>Mcu_GetResetReason()</code></td>
+              <td>Đọc nguyên nhân reset (Power-on, Watchdog, Software…)</td>
+              <td>EcuM (startup)</td>
+            </tr>
+            <tr>
+              <td><code>Mcu_PerformReset()</code></td>
+              <td>Thực hiện software reset</td>
+              <td>BSW / Application</td>
+            </tr>
+            <tr>
+              <td><code>Mcu_SetMode()</code></td>
+              <td>Chuyển power mode (Normal → Sleep…)</td>
+              <td>EcuM (run/sleep)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>3. Kiểu dữ liệu AUTOSAR chuẩn</h2>
+        <table class="theory-table">
+          <thead><tr><th>Type</th><th>C primitive</th><th>Dùng cho</th></tr></thead>
+          <tbody>
+            <tr><td><code>Mcu_ConfigType</code></td><td>struct</td><td>Config pointer truyền vào Mcu_Init()</td></tr>
+            <tr><td><code>Mcu_ClockType</code></td><td>uint8/enum</td><td>Clock setting ID (index vào clock config array)</td></tr>
+            <tr><td><code>Mcu_RamSectionType</code></td><td>uint8</td><td>RAM section ID</td></tr>
+            <tr><td><code>Mcu_PllStatusType</code></td><td>enum</td><td>MCU_PLL_LOCKED / UNLOCKED / UNDEFINED</td></tr>
+            <tr><td><code>Mcu_ResetType</code></td><td>enum</td><td>MCU_POWER_ON_RESET / MCU_WATCHDOG_RESET / …</td></tr>
+            <tr><td><code>Mcu_ModeType</code></td><td>uint8</td><td>MCU Mode ID (index vào mode config array)</td></tr>
+            <tr><td><code>Std_ReturnType</code></td><td>uint8</td><td>E_OK (0) / E_NOT_OK (1)</td></tr>
+          </tbody>
+        </table>
+
+        <h2>4. Trình tự khởi động đúng (EcuM Startup)</h2>
+        <div class="calc-steps">
+          <div class="calc-step">
+            <span class="step-num">1</span>
+            <div>
+              <strong>Mcu_Init(&McuConfigData)</strong>
+              <p>Áp dụng cấu hình cơ bản: enable GPIO clocks, basic hardware init</p>
+            </div>
+          </div>
+          <div class="calc-step">
+            <span class="step-num">2</span>
+            <div>
+              <strong>Mcu_InitRamSection(MCU_RAM_SECTION_0)</strong>
+              <p>Khởi tạo .bss (zero-init) và .data (copy từ flash) — bắt buộc trước khi dùng biến global</p>
+            </div>
+          </div>
+          <div class="calc-step">
+            <span class="step-num">3</span>
+            <div>
+              <strong>Mcu_InitClock(MCU_CLOCK_MODE_PLL)</strong>
+              <p>Cấu hình và kích hoạt PLL, set flash latency, switch SYSCLK</p>
+            </div>
+          </div>
+          <div class="calc-step">
+            <span class="step-num">4</span>
+            <div>
+              <strong>while(Mcu_GetPllStatus() != MCU_PLL_LOCKED)</strong>
+              <p>Đợi PLL lock (thường ~100μs). KHÔNG skip bước này!</p>
+            </div>
+          </div>
+          <div class="calc-step">
+            <span class="step-num">5</span>
+            <div>
+              <strong>Mcu_DistributePllClock()</strong>
+              <p>Phân phối clock PLL tới toàn bộ peripherals — sau bước này mới được dùng SPI, UART…</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="note-box">
+          <strong>Lỗi thường gặp:</strong> Khởi tạo UART/SPI trước <code>Mcu_DistributePllClock()</code>
+          → peripheral chạy với clock sai (thường là HSI/2 = 8 MHz) → baudrate bị lệch, giao tiếp thất bại.
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 2 — CODE
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-block code-section">
+      <div class="section-head">
+        <span class="section-icon">💻</span>
+        <span class="section-label">Code</span>
+        <span class="section-title-text">Triển khai đầy đủ MCU Driver API</span>
+        <span class="collapse-chevron">›</span>
+      </div>
+      <div class="section-body">
+
+        <div class="code-tabs">
+          <button class="code-tab" data-tab="header">Mcu.h</button>
+          <button class="code-tab" data-tab="impl">Mcu.c — Full</button>
+          <button class="code-tab" data-tab="ecum">EcuM Startup</button>
+          <button class="code-tab" data-tab="main">main.c</button>
+        </div>
+
+        <!-- Mcu.h -->
+        <div class="code-pane" data-tab="header">
+          <div class="code-block-wrap">
+            <button class="copy-btn">Copy</button>
+            <pre><code class="language-c">/**
+ * Mcu.h — MCU Driver Public API (AUTOSAR 4.x SWS_Mcu)
+ */
+#ifndef MCU_H
+#define MCU_H
+
+#include "Std_Types.h"   /* Std_ReturnType, uint8, uint32 */
+#include "Mcu_Cfg.h"
+
+/* ── Kiểu dữ liệu ─────────────────────────────── */
+typedef uint8   Mcu_ClockType;
+typedef uint8   Mcu_RamSectionType;
+typedef uint8   Mcu_ModeType;
+
+typedef enum {
+    MCU_PLL_LOCKED    = 0x00U,
+    MCU_PLL_UNLOCKED  = 0x01U,
+    MCU_PLL_STATUS_UNDEFINED = 0x02U,
+} Mcu_PllStatusType;
+
+typedef enum {
+    MCU_POWER_ON_RESET    = 0x00U,
+    MCU_WATCHDOG_RESET    = 0x01U,
+    MCU_SW_RESET          = 0x02U,
+    MCU_RESET_UNDEFINED   = 0xFFU,
+} Mcu_ResetType;
+
+typedef struct {
+    Mcu_ClockType       defaultClockSetting;
+    uint8               ramSectionCount;
+    const void*         platformConfig;   /* HAL config pointer */
+} Mcu_ConfigType;
+
+/* ── API declarations ──────────────────────────── */
+void               Mcu_Init                (const Mcu_ConfigType* ConfigPtr);
+Std_ReturnType     Mcu_InitRamSection      (Mcu_RamSectionType RamSection);
+Std_ReturnType     Mcu_InitClock           (Mcu_ClockType ClockSetting);
+Std_ReturnType     Mcu_DistributePllClock  (void);
+Mcu_PllStatusType  Mcu_GetPllStatus        (void);
+Mcu_ResetType      Mcu_GetResetReason      (void);
+void               Mcu_PerformReset        (void);
+void               Mcu_SetMode             (Mcu_ModeType McuMode);
+
+#endif /* MCU_H */
+</code></pre>
+          </div>
+        </div>
+
+        <!-- Mcu.c Full -->
+        <div class="code-pane" data-tab="impl">
+          <div class="code-block-wrap">
+            <button class="copy-btn">Copy</button>
+            <pre><code class="language-c">/**
+ * Mcu.c — MCU Driver Implementation
+ * Platform: STM32F407 / STM32 HAL
+ */
+#include "Mcu.h"
+#include "stm32f4xx_hal.h"
+
+static const Mcu_ConfigType* Mcu_ConfigPtr = NULL_PTR;
+
+/* ── Mcu_Init ──────────────────────────────────── */
+void Mcu_Init(const Mcu_ConfigType* ConfigPtr)
+{
+    Mcu_ConfigPtr = ConfigPtr;
+    HAL_Init();  /* Reset peripherals, configure SysTick 1ms */
+
+    /* Enable PWR clock — needed for voltage scaling */
+    __HAL_RCC_PWR_CLK_ENABLE();
+    /* Scale 1: max performance for 168 MHz */
+    __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+}
+
+/* ── Mcu_InitRamSection ────────────────────────── */
+Std_ReturnType Mcu_InitRamSection(Mcu_RamSectionType RamSection)
+{
+    /* On Cortex-M with standard startup, .bss and .data are already
+     * initialized by startup.s before main(). This function is kept
+     * for AUTOSAR compliance and future multi-core scenarios. */
+    (void)RamSection;
+    return E_OK;
+}
+
+/* ── Mcu_InitClock ──────────────────────────────── */
+Std_ReturnType Mcu_InitClock(Mcu_ClockType ClockSetting)
+{
+    (void)ClockSetting;  /* Single clock config in this implementation */
+
+    RCC_OscInitTypeDef osc = {0};
+    RCC_ClkInitTypeDef clk = {0};
+
+    osc.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+    osc.HSEState       = RCC_HSE_ON;
+    osc.PLL.PLLState   = RCC_PLL_ON;
+    osc.PLL.PLLSource  = MCU_PLL_SRC;
+    osc.PLL.PLLM       = MCU_PLLM;
+    osc.PLL.PLLN       = MCU_PLLN;
+    osc.PLL.PLLP       = MCU_PLLP;
+    osc.PLL.PLLQ       = MCU_PLLQ;
+
+    if (HAL_RCC_OscConfig(&osc) != HAL_OK) return E_NOT_OK;
+
+    /* Flash latency BEFORE clock switch — see PLL lesson */
+    __HAL_FLASH_SET_LATENCY(MCU_FLASH_LATENCY);
+    if (__HAL_FLASH_GET_LATENCY() != MCU_FLASH_LATENCY) return E_NOT_OK;
+
+    clk.ClockType      = RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK |
+                         RCC_CLOCKTYPE_PCLK1  | RCC_CLOCKTYPE_PCLK2;
+    clk.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
+    clk.AHBCLKDivider  = MCU_AHB_PRESCALER;
+    clk.APB1CLKDivider = MCU_APB1_PRESCALER;
+    clk.APB2CLKDivider = MCU_APB2_PRESCALER;
+
+    if (HAL_RCC_ClockConfig(&clk, MCU_FLASH_LATENCY) != HAL_OK) return E_NOT_OK;
+
+    return E_OK;
+}
+
+/* ── Mcu_GetPllStatus ───────────────────────────── */
+Mcu_PllStatusType Mcu_GetPllStatus(void)
+{
+    if (READ_BIT(RCC->CR, RCC_CR_PLLRDY) != 0U) return MCU_PLL_LOCKED;
+    if (READ_BIT(RCC->CR, RCC_CR_PLLON)  == 0U) return MCU_PLL_STATUS_UNDEFINED;
+    return MCU_PLL_UNLOCKED;
+}
+
+/* ── Mcu_DistributePllClock ─────────────────────── */
+Std_ReturnType Mcu_DistributePllClock(void)
+{
+    if (Mcu_GetPllStatus() != MCU_PLL_LOCKED) return E_NOT_OK;
+    /* HAL_RCC_ClockConfig already routed PLL to all buses.
+     * Notify application layer if callback is configured. */
+    return E_OK;
+}
+
+/* ── Mcu_GetResetReason ─────────────────────────── */
+Mcu_ResetType Mcu_GetResetReason(void)
+{
+    uint32 csr = RCC->CSR;
+    RCC->CSR |= RCC_CSR_RMVF;  /* Clear reset flags */
+
+    if (csr & RCC_CSR_PORRSTF)   return MCU_POWER_ON_RESET;
+    if (csr & RCC_CSR_IWDGRSTF)  return MCU_WATCHDOG_RESET;
+    if (csr & RCC_CSR_WWDGRSTF)  return MCU_WATCHDOG_RESET;
+    if (csr & RCC_CSR_SFTRSTF)   return MCU_SW_RESET;
+    return MCU_RESET_UNDEFINED;
+}
+
+/* ── Mcu_PerformReset ───────────────────────────── */
+void Mcu_PerformReset(void)
+{
+    NVIC_SystemReset();  /* ARM Cortex-M system reset */
+}
+
+/* ── Mcu_SetMode ────────────────────────────────── */
+void Mcu_SetMode(Mcu_ModeType McuMode)
+{
+    switch (McuMode) {
+        case 0x00U:  /* Normal — already running */
+            break;
+        case 0x01U:  /* Sleep */
+            HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+            break;
+        case 0x02U:  /* Stop (deep sleep, retain RAM) */
+            HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+            break;
+        default:
+            break;
+    }
+}
+</code></pre>
+          </div>
+        </div>
+
+        <!-- EcuM Startup -->
+        <div class="code-pane" data-tab="ecum">
+          <div class="code-block-wrap">
+            <button class="copy-btn">Copy</button>
+            <pre><code class="language-c">/**
+ * EcuM_StartupTwo() — EcuM Startup Phase Two
+ * Đây là nơi AUTOSAR EcuM gọi MCU driver API theo đúng thứ tự.
+ *
+ * Tham chiếu: AUTOSAR_SWS_ECUStateManager, Fig. 7-2 (Startup sequence)
+ */
+#include "EcuM.h"
+#include "Mcu.h"
+#include "Port.h"    /* GPIO init */
+#include "Os.h"      /* OS StartOS */
+
+/* Config objects (sinh ra bởi tool như ISOLAR-EVE hoặc EB tresos) */
+extern const Mcu_ConfigType McuConfigData;
+
+void EcuM_StartupTwo(void)
+{
+    Mcu_ResetType resetReason;
+
+    /* ── 1. Khởi tạo MCU driver ── */
+    Mcu_Init(&McuConfigData);
+
+    /* ── 2. Đọc lý do reset (trước khi clear flags) ── */
+    resetReason = Mcu_GetResetReason();
+    EcuM_AL_SetProgrammableInterrupts();
+
+    /* ── 3. Khởi tạo RAM sections ── */
+    Mcu_InitRamSection(MCU_RAM_SECTION_0);
+
+    /* ── 4. Cấu hình và kích hoạt PLL ── */
+    if (Mcu_InitClock(MCU_CLOCK_MODE_PLL) != E_OK) {
+        /* Clock init failed — fallback hoặc reset */
+        Mcu_PerformReset();
+    }
+
+    /* ── 5. Đợi PLL lock (polling, có timeout) ── */
+    {
+        uint32 timeout = 100000U;
+        while ((Mcu_GetPllStatus() != MCU_PLL_LOCKED) && (timeout > 0U)) {
+            timeout--;
+        }
+        if (timeout == 0U) {
+            Mcu_PerformReset();  /* PLL không lock — reset */
+        }
+    }
+
+    /* ── 6. Phân phối clock PLL tới peripherals ── */
+    Mcu_DistributePllClock();
+
+    /* ── 7. Khởi tạo GPIO ports (Port Driver) ── */
+    Port_Init(&PortConfigData);
+
+    /* ── 8. Khởi tạo các driver BSW khác (SPI, UART…) ── */
+    /* Spi_Init(&SpiConfigData); */
+    /* Lin_Init(&LinConfigData); */
+
+    /* ── 9. Khởi động OS ── */
+    Os_StartOS(OSDEFAULTAPPMODE);
+
+    /* Không return sau StartOS */
+}
+</code></pre>
+          </div>
+        </div>
+
+        <!-- main.c -->
+        <div class="code-pane" data-tab="main">
+          <div class="code-block-wrap">
+            <button class="copy-btn">Copy</button>
+            <pre><code class="language-c">/**
+ * main.c — Entry point AUTOSAR project
+ *
+ * Lưu ý: Trong kiến trúc AUTOSAR đầy đủ, main() chỉ gọi
+ * EcuM_Init() và không chứa application logic.
+ * Application logic nằm trong Runnable Entities được
+ * schedule bởi OS và RTE.
+ */
+#include "EcuM.h"
+
+int main(void)
+{
+    /* EcuM_Init gọi EcuM_StartupOne → EcuM_StartupTwo → StartOS */
+    EcuM_Init();
+
+    /* Không bao giờ đến đây trong hệ thống AUTOSAR bình thường */
+    for (;;) { }
+}
+
+/* ── Nếu KHÔNG dùng EcuM đầy đủ (bare-metal MCAL) ── */
+int main_bare_metal(void)
+{
+    /* Config object */
+    static const Mcu_ConfigType cfg = {
+        .defaultClockSetting = MCU_CLOCK_MODE_PLL,
+        .ramSectionCount     = 1U,
+        .platformConfig      = NULL_PTR,
+    };
+
+    Mcu_Init(&cfg);
+    Mcu_InitRamSection(0U);
+
+    if (Mcu_InitClock(MCU_CLOCK_MODE_PLL) == E_OK) {
+        uint32 t = 100000U;
+        while (Mcu_GetPllStatus() != MCU_PLL_LOCKED && t--);
+        Mcu_DistributePllClock();
+    }
+
+    /* System now running at 168 MHz — initialize other drivers */
+    /* ... */
+
+    for (;;) {
+        /* Main loop / OS scheduler placeholder */
+    }
+}
+</code></pre>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 3 — QUIZ
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="section-block quiz">
+      <div class="section-head">
+        <span class="section-icon">🧠</span>
+        <span class="section-label">Quiz</span>
+        <span class="section-title-text">Kiểm tra MCU Driver API</span>
+        <span class="collapse-chevron">›</span>
+      </div>
+      <div class="section-body">
+        <form class="quiz-form">
+
+          <!-- Q1 -->
+          <div class="quiz-question">
+            <p class="q-text">1. Hàm nào phải được gọi TRƯỚC <code>Mcu_DistributePllClock()</code>
+               để đảm bảo clock tới peripherals đúng?</p>
+            <div class="q-options">
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q1"> Mcu_Init() rồi trực tiếp Mcu_DistributePllClock()
+              </label>
+              <label class="q-option" data-correct="true">
+                <input type="radio" name="q1"> Mcu_InitClock() và kiểm tra Mcu_GetPllStatus() == MCU_PLL_LOCKED
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q1"> Không cần điều kiện, gọi bất kỳ lúc nào cũng được
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q1"> Port_Init() phải chạy trước Mcu_DistributePllClock()
+              </label>
+            </div>
+            <div class="q-feedback">
+              <strong>Đúng!</strong> PLL phải lock (<code>MCU_PLL_LOCKED</code>) trước khi
+              phân phối clock. Nếu không, peripheral sẽ nhận clock không ổn định hoặc sai tần số.
+              <code>Mcu_DistributePllClock()</code> nên kiểm tra trạng thái này và trả về <code>E_NOT_OK</code>
+              nếu PLL chưa ready.
+            </div>
+          </div>
+
+          <!-- Q2 -->
+          <div class="quiz-question">
+            <p class="q-text">2. <code>Mcu_GetResetReason()</code> trả về <code>MCU_WATCHDOG_RESET</code>.
+               Điều này có nghĩa là gì trong vận hành?</p>
+            <div class="q-options">
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q2"> Hệ thống vừa được cấp nguồn lần đầu
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q2"> Developer đã nhấn nút reset trên board
+              </label>
+              <label class="q-option" data-correct="true">
+                <input type="radio" name="q2"> Task nào đó bị treo và không kịp kick watchdog — hệ thống đã tự reset
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q2"> Software gọi Mcu_PerformReset()
+              </label>
+            </div>
+            <div class="q-feedback">
+              <strong>Đúng!</strong> Watchdog reset xảy ra khi hệ thống bị treo (infinite loop, deadlock,
+              hoặc task quá dài) và không kịp refresh watchdog counter trước khi timeout.
+              Đây là cơ chế an toàn quan trọng trong hệ thống nhúng. Log lý do reset để debug.
+            </div>
+          </div>
+
+          <!-- Q3 -->
+          <div class="quiz-question">
+            <p class="q-text">3. Trong AUTOSAR, <code>main()</code> thông thường chỉ chứa code nào?</p>
+            <div class="q-options">
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q3"> Toàn bộ logic điều khiển ứng dụng (đọc cảm biến, điều khiển motor…)
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q3"> Mcu_Init() và vòng lặp while(1) chạy application logic
+              </label>
+              <label class="q-option" data-correct="true">
+                <input type="radio" name="q3"> Chỉ gọi EcuM_Init() — logic nằm trong Runnables được OS schedule
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q3"> Không có main() — EcuM tự tạo entry point riêng
+              </label>
+            </div>
+            <div class="q-feedback">
+              <strong>Đúng!</strong> Trong kiến trúc AUTOSAR, <code>main()</code> chỉ gọi
+              <code>EcuM_Init()</code>, sau đó EcuM quản lý startup sequence và khởi động OS.
+              Application logic chạy trong <em>Runnable Entities</em> được mapping vào OS Tasks
+              bởi RTE — không bao giờ viết logic trong <code>main()</code>.
+            </div>
+          </div>
+
+          <div class="quiz-actions">
+            <button type="button" class="quiz-submit">Nộp bài</button>
+            <div class="quiz-result"></div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Navigation ─────────────────────────────────────────── -->
+    <div class="lesson-nav">
+      <a class="nav-btn prev" href="02-pll.html">← PLL</a>
+      <button class="complete-btn">○ Đánh dấu hoàn thành</button>
+      <a class="nav-btn next" href="../../index.html">Hoàn thành Module 1 →</a>
+    </div>
+
+  </main>
+</div><!-- /course-layout -->
+
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-c.min.js"></script>
+<script src="../../assets/js/course.js"></script>
+
+</body>
+</html>

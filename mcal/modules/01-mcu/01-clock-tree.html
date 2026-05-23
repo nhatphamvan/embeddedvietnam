@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clock Tree — Module MCU | MCAL Course</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- Prism.js syntax highlighting -->
+  <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/course.css">
+</head>
+
+<!-- data-lesson-id: dùng để lưu progress vào localStorage -->
+<body data-lesson-id="mcu-01-clock-tree">
+
+<!-- ══ Top bar ══════════════════════════════════════════════════ -->
+<header class="course-topbar">
+  <div class="topbar-logo">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+      <rect width="20" height="20" rx="5" fill="#1a73e8"/>
+      <path d="M5 10h10M10 5v10" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    MCAL Course
+  </div>
+  <div class="topbar-breadcrumb">
+    <span class="sep">›</span>
+    <span>Module MCU</span>
+    <span class="sep">›</span>
+    <span class="current">Clock Tree</span>
+  </div>
+  <div class="topbar-right">
+    <a href="../../index.html" style="font-size:13px;color:var(--text-muted)">← Tổng quan</a>
+  </div>
+</header>
+
+<!-- Progress bar -->
+<div class="progress-bar-wrap">
+  <div class="progress-bar-fill" style="width:0%"></div>
+</div>
+
+<!-- ══ Layout ═══════════════════════════════════════════════════ -->
+<div class="course-layout">
+
+  <!-- Sidebar -->
+  <nav class="course-sidebar">
+    <div class="sidebar-header">Nội dung khóa học</div>
+
+    <!-- Module 1: MCU -->
+    <div class="sidebar-module open">
+      <div class="sidebar-module-title">
+        <span class="mod-icon">🔧</span>
+        Module 1 — MCU
+        <span class="chevron">›</span>
+      </div>
+      <div class="sidebar-lessons">
+        <a class="sidebar-lesson active" href="01-clock-tree.html" data-id="mcu-01-clock-tree">
+          Clock Tree <span class="lesson-status"></span>
+        </a>
+        <a class="sidebar-lesson" href="02-pll.html" data-id="mcu-02-pll">
+          PLL <span class="lesson-status"></span>
+        </a>
+        <a class="sidebar-lesson" href="03-mcal-api.html" data-id="mcu-03-mcal-api">
+          MCU Driver API <span class="lesson-status"></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Module 2: (placeholder) -->
+    <div class="sidebar-module">
+      <div class="sidebar-module-title">
+        <span class="mod-icon">📡</span>
+        Module 2 — Communication
+        <span class="chevron">›</span>
+      </div>
+      <div class="sidebar-lessons">
+        <a class="sidebar-lesson" href="#" data-id="com-01-spi">
+          SPI Driver <span class="lesson-status"></span>
+        </a>
+        <a class="sidebar-lesson" href="#" data-id="com-02-i2c">
+          I2C Driver <span class="lesson-status"></span>
+        </a>
+        <a class="sidebar-lesson" href="#" data-id="com-03-uart">
+          UART Driver <span class="lesson-status"></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Module 3: (placeholder) -->
+    <div class="sidebar-module">
+      <div class="sidebar-module-title">
+        <span class="mod-icon">⚡</span>
+        Module 3 — ADC / PWM
+        <span class="chevron">›</span>
+      </div>
+      <div class="sidebar-lessons">
+        <a class="sidebar-lesson" href="#" data-id="adc-01">
+          ADC Driver <span class="lesson-status"></span>
+        </a>
+        <a class="sidebar-lesson" href="#" data-id="pwm-01">
+          PWM Driver <span class="lesson-status"></span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="course-main">
+
+    <!-- Lesson header -->
+    <div class="lesson-header">
+      <span class="lesson-tag">Module MCU · Bài 1/3</span>
+      <h1 class="lesson-title">Clock Tree trong vi điều khiển</h1>
+      <div class="lesson-meta">
+        <span>⏱ 15 phút</span>
+        <span>📊 Cơ bản</span>
+        <span>🎯 MCAL / Mcu</span>
+      </div>
+    </div>
+
+    <!-- ══ SECTION 1: Lý thuyết ══════════════════════════════════ -->
+    <div class="section-block theory">
+      <div class="section-head">
+        <span class="s-icon">📖</span>
+        Lý thuyết
+        <span class="s-toggle">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="theory-body">
+          <h3>Clock Tree là gì?</h3>
+          <p>
+            <strong>Clock Tree</strong> là hệ thống phân phối xung nhịp (clock) từ nguồn oscillator
+            đến các ngoại vi và CPU trong vi điều khiển. Mỗi nhánh của cây clock
+            có thể được cấu hình độc lập về tần số và trạng thái (on/off).
+          </p>
+
+          <div class="callout">
+            💡 <strong>Tại sao cần Clock Tree?</strong> Vì mỗi peripheral (UART, SPI, ADC…)
+            có yêu cầu tần số hoạt động khác nhau. Clock Tree cho phép CPU chạy 180 MHz
+            trong khi I2C chỉ cần 8 MHz.
+          </div>
+
+          <h3>Các thành phần chính</h3>
+          <ul>
+            <li><strong>HSI</strong> (High Speed Internal) — dao động RC nội, ~16 MHz, không cần thạch anh ngoài</li>
+            <li><strong>HSE</strong> (High Speed External) — thạch anh ngoài, chính xác hơn, thường 8–25 MHz</li>
+            <li><strong>LSI / LSE</strong> — nguồn clock chậm cho RTC và WDT (~32 kHz)</li>
+            <li><strong>PLL</strong> (Phase-Locked Loop) — nhân tần số từ HSI/HSE lên tần số cao (vd: 180 MHz)</li>
+            <li><strong>Prescaler</strong> — chia tần số cho từng bus (AHB, APB1, APB2)</li>
+          </ul>
+
+          <h3>Bus clock trong STM32</h3>
+          <p>
+            Sau khi qua PLL, clock được phân phối qua các bus với bộ chia (prescaler):
+          </p>
+          <ul>
+            <li><strong>SYSCLK</strong> — clock hệ thống (max 180 MHz trên F4)</li>
+            <li><strong>AHB</strong> — Advanced High-Performance Bus (CPU, DMA, memory)</li>
+            <li><strong>APB1</strong> — tần số thấp hơn, dùng cho UART, SPI, I2C, TIM2-7</li>
+            <li><strong>APB2</strong> — tần số cao hơn APB1, dùng cho ADC, TIM1, SPI1</li>
+          </ul>
+
+          <div class="callout warning">
+            ⚠️ <strong>Lỗi phổ biến:</strong> Quên enable clock cho peripheral trước khi sử dụng.
+            Trong AUTOSAR MCAL, <code>Mcu_Init()</code> phải được gọi đầu tiên trước tất cả driver khác.
+          </div>
+
+          <h3>Trong AUTOSAR MCAL</h3>
+          <p>
+            Module <code>Mcu</code> (AUTOSAR SWS_Mcu) chịu trách nhiệm cấu hình clock tree
+            thông qua cấu trúc <code>Mcu_ClockSettingConfigType</code>. Các setting được
+            sinh ra bởi tool cấu hình (vd: EB Tresos, MCAL Configurator).
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SECTION 2: Animation ══════════════════════════════════ -->
+    <div class="section-block animation">
+      <div class="section-head">
+        <span class="s-icon">▶</span>
+        Mô phỏng tương tác — Clock Tree
+        <span class="s-toggle">▾</span>
+      </div>
+      <div class="section-body">
+
+        <!-- SVG clock tree diagram -->
+        <div class="anim-canvas" id="clock-anim">
+          <svg id="clock-svg" viewBox="0 0 700 260" width="100%" style="max-width:680px">
+            <defs>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#4ade80"/>
+              </marker>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+
+            <!-- Sources -->
+            <g class="clk-node" id="node-hse" data-step="1">
+              <rect x="10" y="30" width="80" height="36" rx="6" fill="#1e3a5f" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="50" y="52" text-anchor="middle" fill="#60a5fa" font-size="12" font-weight="700">HSE</text>
+              <text x="50" y="62" text-anchor="middle" fill="#94a3b8" font-size="9">8 MHz</text>
+            </g>
+
+            <g class="clk-node" id="node-hsi" data-step="1">
+              <rect x="10" y="90" width="80" height="36" rx="6" fill="#1e3a5f" stroke="#60a5fa" stroke-width="1.5"/>
+              <text x="50" y="112" text-anchor="middle" fill="#60a5fa" font-size="12" font-weight="700">HSI</text>
+              <text x="50" y="122" text-anchor="middle" fill="#94a3b8" font-size="9">16 MHz</text>
+            </g>
+
+            <!-- MUX -->
+            <g class="clk-node" id="node-mux" data-step="2">
+              <rect x="130" y="55" width="70" height="36" rx="6" fill="#1e1e2e" stroke="#a78bfa" stroke-width="1.5"/>
+              <text x="165" y="76" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="700">MUX</text>
+              <text x="165" y="86" text-anchor="middle" fill="#94a3b8" font-size="9">select src</text>
+            </g>
+
+            <!-- PLL -->
+            <g class="clk-node" id="node-pll" data-step="3">
+              <rect x="245" y="55" width="80" height="36" rx="6" fill="#1e1e2e" stroke="#f472b6" stroke-width="1.5"/>
+              <text x="285" y="76" text-anchor="middle" fill="#f472b6" font-size="12" font-weight="700">PLL</text>
+              <text x="285" y="86" text-anchor="middle" fill="#94a3b8" font-size="9">×22.5 → 180</text>
+            </g>
+
+            <!-- SYSCLK -->
+            <g class="clk-node" id="node-sys" data-step="4">
+              <rect x="375" y="55" width="90" height="36" rx="6" fill="#1e1e2e" stroke="#facc15" stroke-width="1.5"/>
+              <text x="420" y="76" text-anchor="middle" fill="#facc15" font-size="11" font-weight="700">SYSCLK</text>
+              <text x="420" y="86" text-anchor="middle" fill="#94a3b8" font-size="9">180 MHz</text>
+            </g>
+
+            <!-- AHB -->
+            <g class="clk-node" id="node-ahb" data-step="5">
+              <rect x="510" y="20" width="80" height="36" rx="6" fill="#1e1e2e" stroke="#4ade80" stroke-width="1.5"/>
+              <text x="550" y="41" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="700">AHB</text>
+              <text x="550" y="51" text-anchor="middle" fill="#94a3b8" font-size="9">÷1 = 180</text>
+            </g>
+
+            <!-- APB1 -->
+            <g class="clk-node" id="node-apb1" data-step="5">
+              <rect x="510" y="75" width="80" height="36" rx="6" fill="#1e1e2e" stroke="#4ade80" stroke-width="1.5"/>
+              <text x="550" y="96" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="700">APB1</text>
+              <text x="550" y="106" text-anchor="middle" fill="#94a3b8" font-size="9">÷4 = 45</text>
+            </g>
+
+            <!-- APB2 -->
+            <g class="clk-node" id="node-apb2" data-step="5">
+              <rect x="510" y="130" width="80" height="36" rx="6" fill="#1e1e2e" stroke="#4ade80" stroke-width="1.5"/>
+              <text x="550" y="151" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="700">APB2</text>
+              <text x="550" y="161" text-anchor="middle" fill="#94a3b8" font-size="9">÷2 = 90</text>
+            </g>
+
+            <!-- Arrows -->
+            <line id="a-hse-mux" x1="90" y1="48" x2="128" y2="65" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.3"/>
+            <line id="a-hsi-mux" x1="90" y1="105" x2="128" y2="80" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.3"/>
+            <line id="a-mux-pll" x1="200" y1="73" x2="243" y2="73" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.3"/>
+            <line id="a-pll-sys" x1="325" y1="73" x2="373" y2="73" stroke="#f472b6" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.3"/>
+            <line id="a-sys-ahb" x1="465" y1="68" x2="508" y2="45" stroke="#facc15" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.3"/>
+            <line id="a-sys-apb1" x1="465" y1="73" x2="508" y2="90" stroke="#facc15" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.3"/>
+            <line id="a-sys-apb2" x1="465" y1="78" x2="508" y2="140" stroke="#facc15" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.3"/>
+
+            <!-- Peripherals -->
+            <text x="600" y="43" fill="#94a3b8" font-size="10">CPU · DMA</text>
+            <text x="600" y="98" fill="#94a3b8" font-size="10">UART · I2C · SPI2</text>
+            <text x="600" y="153" fill="#94a3b8" font-size="10">ADC · SPI1 · TIM1</text>
+
+            <!-- Step label -->
+            <text id="anim-step-label" x="350" y="230" text-anchor="middle" fill="#64748b" font-size="12">
+              Nhấn các nút bên dưới để xem từng bước
+            </text>
+          </svg>
+        </div>
+
+        <div class="anim-controls">
+          <button class="anim-btn" data-step="0" onclick="clockAnim(0)">Reset</button>
+          <button class="anim-btn" data-step="1" onclick="clockAnim(1)">① Nguồn clock</button>
+          <button class="anim-btn" data-step="2" onclick="clockAnim(2)">② MUX chọn nguồn</button>
+          <button class="anim-btn" data-step="3" onclick="clockAnim(3)">③ PLL nhân tần số</button>
+          <button class="anim-btn" data-step="4" onclick="clockAnim(4)">④ SYSCLK</button>
+          <button class="anim-btn" data-step="5" onclick="clockAnim(5)">⑤ Phân phối bus</button>
+        </div>
+
+        <script>
+        const STEPS = {
+          0: { arrows: [], label: 'Nhấn các nút để xem từng bước' },
+          1: { arrows: ['a-hse-mux','a-hsi-mux'], label: 'HSE (8 MHz) và HSI (16 MHz) là hai nguồn clock chính' },
+          2: { arrows: ['a-hse-mux','a-hsi-mux','a-mux-pll'], label: 'MUX chọn HSE làm nguồn → đưa vào PLL' },
+          3: { arrows: ['a-hse-mux','a-hsi-mux','a-mux-pll','a-pll-sys'], label: 'PLL nhân tần số: 8 MHz × 22.5 = 180 MHz' },
+          4: { arrows: ['a-mux-pll','a-pll-sys','a-sys-ahb','a-sys-apb1','a-sys-apb2'], label: 'SYSCLK = 180 MHz sẵn sàng phân phối' },
+          5: { arrows: ['a-sys-ahb','a-sys-apb1','a-sys-apb2'], label: 'AHB=180MHz | APB1=45MHz (÷4) | APB2=90MHz (÷2)' },
+        };
+
+        function clockAnim(step) {
+          const all = ['a-hse-mux','a-hsi-mux','a-mux-pll','a-pll-sys','a-sys-ahb','a-sys-apb1','a-sys-apb2'];
+          all.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.opacity = '0.15';
+          });
+          STEPS[step].arrows.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.style.opacity = '1'; el.style.filter = 'drop-shadow(0 0 4px currentColor)'; }
+          });
+          const label = document.getElementById('anim-step-label');
+          if (label) label.textContent = STEPS[step].label;
+          document.querySelectorAll('.anim-btn').forEach(b => b.classList.toggle('active', +b.dataset.step === step));
+        }
+        clockAnim(0);
+        </script>
+
+      </div>
+    </div>
+
+    <!-- ══ SECTION 3: Code ════════════════════════════════════════ -->
+    <div class="section-block code-section">
+      <div class="section-head">
+        <span class="s-icon">💻</span>
+        Code — AUTOSAR Mcu_Init
+        <span class="s-toggle">▾</span>
+      </div>
+      <div class="section-body">
+
+        <div class="code-tabs">
+          <div class="code-tab active" data-tab="cfg">Mcu_Cfg.h</div>
+          <div class="code-tab" data-tab="init">Mcu.c — Init</div>
+          <div class="code-tab" data-tab="main">main.c</div>
+        </div>
+
+        <!-- Tab: Mcu_Cfg.h -->
+        <div class="code-pane active" data-tab="cfg">
+          <div class="code-block-wrap">
+            <button class="copy-btn">Copy</button>
+<pre><code class="language-c">/* Mcu_Cfg.h — generated by MCAL Configurator */
+#ifndef MCU_CFG_H
+#define MCU_CFG_H
+
+/* Clock setting index */
+#define MCU_CLOCK_SETTING_PLL_180MHZ   ((Mcu_ClockType)0U)
+#define MCU_CLOCK_SETTING_HSI_16MHZ    ((Mcu_ClockType)1U)
+
+/* RAM section index */
+#define McuConf_McuRamSectorSettingConf_McuRamSector0  ((Mcu_RamSectionType)0U)
+
+#endif /* MCU_CFG_H */
+</code></pre>
+          </div>
+        </div>
+
+        <!-- Tab: Mcu.c -->
+        <div class="code-pane" data-tab="init">
+          <div class="code-block-wrap">
+            <button class="copy-btn">Copy</button>
+<pre><code class="language-c">/* Mcu.c — Clock tree configuration for STM32F4 */
+
+static const Mcu_ClockSettingConfigType Mcu_ClockSettingConfig[] = {
+    /* Index 0: PLL → 180 MHz */
+    {
+        .McuClockSettingId     = MCU_CLOCK_SETTING_PLL_180MHZ,
+        .McuClockSourceSelect  = MCU_CLOCK_SOURCE_HSE,   /* HSE 8 MHz */
+        .McuPllM               = 4U,    /* VCO input = 8/4 = 2 MHz */
+        .McuPllN               = 180U,  /* VCO output = 2*180 = 360 MHz */
+        .McuPllP               = 2U,    /* SYSCLK = 360/2 = 180 MHz */
+        .McuPllQ               = 8U,    /* USB = 360/8 = 45 MHz */
+        .McuAHBPrescaler       = MCU_AHB_DIV_1,   /* AHB  = 180 MHz */
+        .McuAPB1Prescaler      = MCU_APB1_DIV_4,  /* APB1 = 45  MHz */
+        .McuAPB2Prescaler      = MCU_APB2_DIV_2,  /* APB2 = 90  MHz */
+        .McuFlashWaitStates    = 5U,               /* required at 180 MHz */
+    },
+};
+
+void Mcu_Init(const Mcu_ConfigType* ConfigPtr)
+{
+    /* 1. Enable HSE and wait ready */
+    RCC->CR |= RCC_CR_HSEON;
+    while (!(RCC->CR & RCC_CR_HSERDY));
+
+    /* 2. Configure PLL */
+    RCC->PLLCFGR = (ConfigPtr->ClockSetting->McuPllM)
+                 | (ConfigPtr->ClockSetting->McuPllN  << 6U)
+                 | (((ConfigPtr->ClockSetting->McuPllP / 2U) - 1U) << 16U)
+                 | RCC_PLLCFGR_PLLSRC_HSE
+                 | (ConfigPtr->ClockSetting->McuPllQ  << 24U);
+
+    /* 3. Enable PLL */
+    RCC->CR |= RCC_CR_PLLON;
+    while (!(RCC->CR & RCC_CR_PLLRDY));
+
+    /* 4. Switch SYSCLK to PLL */
+    RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL;
+    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);
+}
+</code></pre>
+          </div>
+        </div>
+
+        <!-- Tab: main.c -->
+        <div class="code-pane" data-tab="main">
+          <div class="code-block-wrap">
+            <button class="copy-btn">Copy</button>
+<pre><code class="language-c">/* main.c — AUTOSAR BSW initialization sequence */
+#include "Mcu.h"
+#include "Port.h"
+
+/* Generated config structs */
+extern const Mcu_ConfigType   McuConfigSet;
+extern const Port_ConfigType  PortConfigSet;
+
+int main(void)
+{
+    /* Step 1: Initialize MCU (clock tree, RAM, reset reason) */
+    Mcu_Init(&McuConfigSet);
+
+    /* Step 2: Activate clock setting (PLL 180 MHz) */
+    Mcu_InitClock(MCU_CLOCK_SETTING_PLL_180MHZ);
+
+    /* Step 3: Wait until PLL is stable */
+    while (Mcu_GetPllStatus() != MCU_PLL_LOCKED);
+
+    /* Step 4: Distribute clock to all peripherals */
+    Mcu_DistributePllClock();
+
+    /* Step 5: Initialize Port driver (GPIO direction, mode) */
+    Port_Init(&PortConfigSet);
+
+    /* ... initialize other drivers ... */
+
+    for (;;) {
+        /* main loop */
+    }
+}
+</code></pre>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══ SECTION 4: Quiz ════════════════════════════════════════ -->
+    <div class="section-block quiz">
+      <div class="section-head">
+        <span class="s-icon">❓</span>
+        Kiểm tra kiến thức
+        <span class="s-toggle">▾</span>
+      </div>
+      <div class="section-body">
+        <form class="quiz-form">
+
+          <div class="quiz-question">
+            <div class="q-text">
+              <span class="q-num">1</span>
+              <span>PLL trong vi điều khiển có chức năng gì?</span>
+            </div>
+            <div class="q-options">
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q1"> Chia tần số xuống cho peripheral
+              </label>
+              <label class="q-option" data-correct="true">
+                <input type="radio" name="q1"> Nhân tần số từ nguồn clock lên tần số cao hơn
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q1"> Chọn nguồn clock giữa HSE và HSI
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q1"> Cung cấp clock cho RTC
+              </label>
+            </div>
+            <div class="q-feedback ok">✓ Đúng! PLL (Phase-Locked Loop) nhân tần số đầu vào — ví dụ 8 MHz × 22.5 = 180 MHz.</div>
+            <div class="q-feedback err">✗ Sai. PLL có nhiệm vụ NHÂN tần số (multiply), không phải chia. Bộ chia là Prescaler.</div>
+          </div>
+
+          <div class="quiz-question">
+            <div class="q-text">
+              <span class="q-num">2</span>
+              <span>Trong AUTOSAR, hàm nào phải được gọi đầu tiên để khởi tạo clock tree?</span>
+            </div>
+            <div class="q-options">
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q2"> Port_Init()
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q2"> Dio_Init()
+              </label>
+              <label class="q-option" data-correct="true">
+                <input type="radio" name="q2"> Mcu_Init()
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q2"> Os_StartOS()
+              </label>
+            </div>
+            <div class="q-feedback ok">✓ Đúng! Mcu_Init() luôn là hàm đầu tiên trong chuỗi khởi tạo BSW.</div>
+            <div class="q-feedback err">✗ Sai. Theo AUTOSAR SWS, Mcu_Init() phải được gọi trước tất cả các driver khác.</div>
+          </div>
+
+          <div class="quiz-question">
+            <div class="q-text">
+              <span class="q-num">3</span>
+              <span>APB1 và APB2 khác nhau thế nào trong STM32F4 @ 180 MHz?</span>
+            </div>
+            <div class="q-options">
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q3"> APB1 nhanh hơn APB2
+              </label>
+              <label class="q-option" data-correct="true">
+                <input type="radio" name="q3"> APB1 chậm hơn APB2 (÷4 so với ÷2)
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q3"> APB1 và APB2 có tần số bằng nhau
+              </label>
+              <label class="q-option" data-correct="false">
+                <input type="radio" name="q3"> APB2 dùng riêng cho USB
+              </label>
+            </div>
+            <div class="q-feedback ok">✓ Đúng! APB1 ÷4 = 45 MHz, APB2 ÷2 = 90 MHz. APB2 chạy nhanh hơn, dùng cho ADC, SPI1.</div>
+            <div class="q-feedback err">✗ Sai. APB1 (÷4=45MHz) CHẬM hơn APB2 (÷2=90MHz).</div>
+          </div>
+
+          <button type="button" class="quiz-submit">Kiểm tra đáp án</button>
+          <div class="quiz-result"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Mark complete -->
+    <button class="complete-btn">○ Đánh dấu hoàn thành</button>
+
+    <!-- ══ Navigation ═════════════════════════════════════════════ -->
+    <div class="lesson-nav">
+      <a href="../../index.html">
+        <span class="nav-arrow">←</span>
+        <span>
+          <span class="nav-label">Quay lại</span>
+          <span class="nav-title">Tổng quan khóa học</span>
+        </span>
+      </a>
+      <a class="next" href="02-pll.html">
+        <span class="nav-arrow">→</span>
+        <span>
+          <span class="nav-label">Bài tiếp theo</span>
+          <span class="nav-title">PLL — Phase Locked Loop</span>
+        </span>
+      </a>
+    </div>
+
+  </main>
+</div>
+
+<!-- Mobile sidebar toggle -->
+<button class="sidebar-toggle" aria-label="Menu">☰</button>
+
+<!-- Prism.js -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-c.min.js"></script>
+<script src="../../assets/js/course.js"></script>
+</body>
+</html>
