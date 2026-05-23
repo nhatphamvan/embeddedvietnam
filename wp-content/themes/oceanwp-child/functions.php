@@ -96,29 +96,14 @@ add_action( 'template_redirect', function() {
     }
 } );
 
-// Inject Courses section above Recruitment on homepage
+// Inject Courses section above Recruitment on homepage via MutationObserver
 add_action( 'wp_footer', function () {
     ?>
 <script>
 (function () {
     if (!document.body.classList.contains('home')) return;
-    var h = Array.from(document.querySelectorAll('h2,h3,.elementor-heading-title'))
-              .find(function (el) { return el.textContent.trim() === 'Recruitment'; });
-    console.log('[EIO] heading:', h ? h.textContent : 'NOT FOUND');
-    if (!h) return;
 
-    var a = h;
-    while (a && a !== document.body) {
-        if (a.parentElement && a.parentElement.classList.contains('elementor')) break;
-        a = a.parentElement;
-    }
-    console.log('[EIO] anchor:', a ? a.className.substring(0,80) : 'NOT FOUND');
-    console.log('[EIO] anchor.parent:', a ? a.parentElement.className.substring(0,60) : '-');
-    if (!a || a === document.body) return;
-
-    var s = document.createElement('div');
-    s.className = 'eio-courses-section';
-    s.innerHTML =
+    var COURSES_HTML =
         '<div class="wrap container-aligned">' +
           '<div class="eio-section__header">' +
             '<h2>Khóa học</h2>' +
@@ -169,13 +154,37 @@ add_action( 'wp_footer', function () {
             '</a>' +
             '<a class="eio-course-card eio-course-card--all" href="/mcal/">' +
               '<span class="all-icon">📚</span>' +
-              '<span class="all-label">Xem tất cả khóa họ c</span>' +
+              '<span class="all-label">Xem tất cả khóa học</span>' +
               '<span class="all-sub">8 bài · 3 module · Miễn phí</span>' +
             '</a>' +
           '</div>' +
         '</div>';
 
-    a.parentElement.insertBefore(s, a);
+    function tryInject() {
+        if (document.querySelector('.eio-courses-section')) return true;
+        var h = Array.from(document.querySelectorAll('.featured-title-header, h2, h3'))
+                    .find(function(el) { return el.textContent.trim() === 'Recruitment'; });
+        if (!h) return false;
+        var a = h;
+        while (a && a !== document.body) {
+            if (a.parentElement && a.parentElement.classList.contains('elementor')) break;
+            a = a.parentElement;
+        }
+        if (!a || a === document.body) return false;
+        var s = document.createElement('div');
+        s.className = 'eio-courses-section';
+        s.innerHTML = COURSES_HTML;
+        a.parentElement.insertBefore(s, a);
+        return true;
+    }
+
+    if (!tryInject()) {
+        var obs = new MutationObserver(function() {
+            if (tryInject()) obs.disconnect();
+        });
+        obs.observe(document.documentElement, { childList: true, subtree: true });
+        setTimeout(function() { obs.disconnect(); }, 8000);
+    }
 })();
 </script>
     <?php
