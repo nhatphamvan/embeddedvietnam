@@ -616,3 +616,118 @@ select:focus-visible,
         text-align: center;
     }
 }
+
+/* ---------- Courses section (injected above Recruitment) ---------- */
+.eio-courses-section { padding: var(--section-y) 0; }
+.eio-courses-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+.eio-course-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+.eio-course-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-3px); color: inherit; }
+.eio-course-card__header {
+    background: linear-gradient(135deg, #0d1b35 0%, #1a3a6e 60%, #1a73e8 100%);
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-height: 80px;
+}
+.eio-course-card__icon {
+    font-size: 1.75rem;
+    flex-shrink: 0;
+}
+.eio-course-card__header-text { flex: 1; min-width: 0; }
+.eio-course-card__badge {
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.6);
+    margin-bottom: 3px;
+}
+.eio-course-card__header-title {
+    font-size: .95rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.eio-course-card__body {
+    padding: 1rem 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+.eio-course-card__desc {
+    font-size: .85rem;
+    color: var(--text-light);
+    line-height: 1.5;
+    flex: 1;
+}
+.eio-course-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: .25rem;
+}
+.eio-course-tag {
+    font-size: .68rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: .04em;
+}
+.eio-course-tag--theory { background: #e8f0fe; color: #1558b0; }
+.eio-course-tag--code   { background: #e6f4ea; color: #1e7e34; }
+.eio-course-tag--autosar { background: #fff3e0; color: #e65100; }
+.eio-course-card__footer {
+    padding: .75rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .8rem;
+    color: var(--text-light);
+}
+.eio-course-card__cta {
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+/* "Xem tất cả" card */
+.eio-course-card--all {
+    background: rgba(26,115,232,.04);
+    border-style: dashed;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    gap: .75rem;
+    min-height: 160px;
+}
+.eio-course-card--all .all-icon { font-size: 2rem; }
+.eio-course-card--all .all-label { font-weight: 700; color: var(--primary); font-size: .95rem; }
+.eio-course-card--all .all-sub   { font-size: .82rem; color: var(--text-light); }
+
+@media (max-width: 1024px) {
+    .eio-courses-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+    .eio-courses-grid { grid-template-columns: 1fr; }
+    .eio-course-card--all { min-height: 100px; padding: 1.25rem; }
+}
