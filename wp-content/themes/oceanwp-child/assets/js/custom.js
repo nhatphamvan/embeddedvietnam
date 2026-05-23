@@ -148,18 +148,23 @@
         anchor.parentElement.insertBefore(section, anchor);
     }
 
-    /* Run on DOMContentLoaded — but if DOM already loaded (script in footer), run now */
-    function onReady(fn) {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', fn);
-        } else {
+    /* Wait for window.load — Elementor lazy-loads sections after DOMContentLoaded */
+    function onLoad(fn) {
+        if (document.readyState === 'complete') {
             fn();
+        } else {
+            window.addEventListener('load', fn);
         }
     }
 
-    onReady(function () {
+    onLoad(function () {
         injectHeaderNav();
         injectCoursesSection();
+        /* Retry once after 600ms in case Elementor renders sections late */
+        setTimeout(function () {
+            injectHeaderNav();
+            injectCoursesSection();
+        }, 600);
     });
 
 })();
