@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RCC — STM32F411xC/E | Tài liệu kỹ thuật cho kỹ sư embedded</title>
+<meta name="description" content="Lý thuyết tóm tắt module Reset and Clock Control (RCC) của STM32F411xC/E - dành cho kỹ sư embedded.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800;9..144,900&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #fafaf7;
+    --bg-elevated: #f3f2ed;
+    --bg-card: #ffffff;
+    --ink: #14110d;
+    --ink-dim: #5a564f;
+    --ink-faint: #9a9690;
+    --accent: #d94a1f;       /* deep terracotta — engineering signal */
+    --accent-soft: #fdf0eb;
+    --warn: #b8410a;
+    --info: #1e6091;
+    --info-soft: #e8f0f7;
+    --grid: rgba(20, 17, 13, 0.04);
+    --border: rgba(20, 17, 13, 0.1);
+    --border-strong: rgba(20, 17, 13, 0.2);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 400;
+    line-height: 1.65;
+    font-size: 16px;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  }
+
+  /* Subtle paper noise */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+    pointer-events: none;
+    opacity: 0.03;
+    z-index: 1;
+    mix-blend-mode: multiply;
+  }
+
+  main, header, footer { position: relative; z-index: 2; }
+
+  /* ---------- TOP BAR ---------- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(250, 250, 247, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  .brand {
+    color: var(--accent);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .topbar-meta { color: var(--ink-dim); display: flex; gap: 24px; }
+  .topbar-meta span::before { content: '// '; color: var(--ink-faint); }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 80px 32px 60px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .hero-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .hero-tag::before {
+    content: '';
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: clamp(48px, 8vw, 112px);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    margin-bottom: 24px;
+    font-variation-settings: 'opsz' 144;
+    color: var(--ink);
+  }
+  h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .hero-sub {
+    font-size: 20px;
+    color: var(--ink-dim);
+    max-width: 720px;
+    margin-bottom: 48px;
+    line-height: 1.5;
+  }
+
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 32px;
+    padding-top: 32px;
+    border-top: 1px dashed var(--border);
+  }
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .stat-value em { color: var(--accent); font-style: normal; }
+
+  /* ---------- TOC ---------- */
+  .toc {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 60px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toc-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .toc ol {
+    list-style: none;
+    counter-reset: toc;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 8px;
+  }
+  .toc li {
+    counter-increment: toc;
+    border-top: 1px solid var(--border);
+    padding: 16px 0;
+    transition: all 0.2s;
+  }
+  .toc li:hover { border-top-color: var(--accent); }
+  .toc a {
+    color: var(--ink);
+    text-decoration: none;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    font-size: 16px;
+  }
+  .toc a::before {
+    content: '0' counter(toc);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    flex-shrink: 0;
+  }
+  .toc a:hover { color: var(--accent); }
+
+  /* ---------- CONTENT ---------- */
+  .content {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 60px 32px 120px;
+  }
+
+  section.chapter {
+    padding: 80px 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 60px;
+  }
+  section.chapter:last-of-type { border-bottom: none; }
+
+  .ch-meta {
+    position: sticky;
+    top: 80px;
+    align-self: start;
+    height: max-content;
+  }
+  .ch-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    margin-bottom: 12px;
+  }
+  .ch-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .ch-body { min-width: 0; }
+
+  h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: clamp(32px, 4vw, 52px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 32px;
+    font-variation-settings: 'opsz' 96;
+    color: var(--ink);
+  }
+  h2 em { color: var(--accent); font-style: italic; font-weight: 400;}
+
+  h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 24px;
+    margin: 40px 0 16px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin: 28px 0 12px;
+  }
+
+  p { margin-bottom: 18px; color: var(--ink); }
+  p + p { margin-top: -4px; }
+
+  strong { color: var(--accent); font-weight: 600; }
+  em { color: var(--info); font-style: italic; }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88em;
+    background: var(--bg-elevated);
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--accent);
+  }
+
+  /* ---------- CARDS / CALLOUTS ---------- */
+  .note {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--warn);
+    padding: 20px 24px;
+    margin: 24px 0;
+    font-size: 15px;
+    position: relative;
+  }
+  .note::before {
+    content: '⚠ TRAP';
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: var(--bg);
+    color: var(--warn);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    padding: 2px 8px;
+    border: 1px solid var(--warn);
+  }
+
+  .tip {
+    background: var(--info-soft);
+    border-left: 3px solid var(--info);
+    padding: 20px 24px;
+    margin: 24px 0;
+    font-size: 15px;
+    position: relative;
+  }
+  .tip::before {
+    content: '◆ TIP';
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: var(--bg);
+    color: var(--info);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    padding: 2px 8px;
+    border: 1px solid var(--info);
+  }
+
+  /* ---------- TABLES ---------- */
+  .table-wrap {
+    margin: 24px 0;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th, td {
+    padding: 14px 18px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-faint);
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-strong);
+  }
+  tbody tr:hover { background: var(--accent-soft); }
+  td:first-child { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+
+  /* ---------- CODE BLOCKS ---------- */
+  pre {
+    background: #1d1a16;
+    color: #f0ede5;
+    border: 1px solid var(--ink);
+    border-left: 3px solid var(--accent);
+    padding: 24px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    position: relative;
+  }
+  pre::before {
+    content: attr(data-lang);
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 10px;
+    color: #9a9690;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #f0ede5;
+    font-size: inherit;
+  }
+
+  /* code highlight classes */
+  .k { color: #ff8aa7; }       /* keyword */
+  .s { color: #f59f3a; }       /* string / register */
+  .c { color: #7a7670; font-style: italic; } /* comment */
+  .n { color: #6cc4e8; }       /* number */
+  .f { color: #f5d36c; }       /* function */
+
+  /* ---------- LIST ---------- */
+  ul.bullets, ol.steps {
+    margin: 16px 0;
+    padding-left: 0;
+    list-style: none;
+  }
+  ul.bullets li, ol.steps li {
+    position: relative;
+    padding-left: 28px;
+    margin-bottom: 12px;
+    line-height: 1.6;
+  }
+  ul.bullets li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-size: 14px;
+    top: 2px;
+  }
+  ol.steps {
+    counter-reset: step;
+  }
+  ol.steps li {
+    counter-increment: step;
+  }
+  ol.steps li::before {
+    content: counter(step, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    top: 4px;
+    font-weight: 700;
+  }
+
+  /* ---------- KEY-VALUE GRID ---------- */
+  .kv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    margin: 24px 0;
+    border: 1px solid var(--border);
+  }
+  .kv-item {
+    background: var(--bg-card);
+    padding: 20px;
+  }
+  .kv-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+  }
+  .kv-value {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .kv-desc { font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+
+  /* ---------- USE CASE CARDS ---------- */
+  .case {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 28px 32px;
+    margin: 28px 0;
+    position: relative;
+  }
+  .case-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 8px;
+    padding-bottom: 16px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .case-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    font-weight: 700;
+  }
+  .case-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .case-body { margin-top: 16px; }
+  .case-body h4 { margin-top: 18px; }
+  .case-body h4:first-child { margin-top: 0; }
+
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 16px;
+  }
+  .pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    background: var(--bg-elevated);
+    color: var(--ink-dim);
+    border: 1px solid var(--border);
+  }
+  .pill.on { background: var(--accent); color: var(--bg-card); border-color: var(--accent); }
+  .pill.warn { background: var(--accent-soft); color: var(--warn); border-color: var(--warn); }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 60px 32px 80px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 32px;
+  }
+  .footer-brand {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 0.9;
+    color: var(--ink);
+  }
+  .footer-brand em { color: var(--accent); font-style: italic; }
+  .footer-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    text-align: right;
+  }
+  .footer-meta div { margin-bottom: 4px; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 900px) {
+    section.chapter {
+      grid-template-columns: 1fr;
+      gap: 24px;
+      padding: 56px 0;
+    }
+    .ch-meta { position: static; }
+    .hero { padding: 48px 24px 40px; }
+    .content { padding: 32px 24px 80px; }
+    .topbar-inner { padding: 12px 24px; }
+    .topbar-meta { display: none; }
+    .toc { padding: 40px 24px; }
+    footer { padding: 40px 24px 60px; }
+    .case { padding: 22px 20px; }
+  }
+
+  /* ---------- ANIMATIONS ---------- */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hero > * { animation: fadeUp 0.8s ease-out backwards; }
+  .hero-tag { animation-delay: 0.1s; }
+  h1 { animation-delay: 0.2s; }
+  .hero-sub { animation-delay: 0.35s; }
+  .hero-stats { animation-delay: 0.5s; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">RCC.STM32F411 / REF-DOC</div>
+    <div class="topbar-meta">
+      <span>v1.1</span>
+      <span>EMBEDDED</span>
+      <span>ARM CORTEX-M4</span>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-tag">Reset &amp; Clock Control — Reference</div>
+  <h1>Module RCC<br>cho <em>STM32F411xC/E</em></h1>
+  <p class="hero-sub">
+    Bộ tài liệu tóm tắt lý thuyết về Reset and Clock Control — module quản lý nguồn xung nhịp
+    và cơ chế reset của vi điều khiển STM32F411. Viết cho kỹ sư embedded muốn hiểu sâu để
+    cấu hình clock tree, debug reset bất thường, và tối ưu năng lượng.
+  </p>
+  <div class="hero-stats">
+    <div>
+      <div class="stat-label">Core max</div>
+      <div class="stat-value"><em>100</em> MHz</div>
+    </div>
+    <div>
+      <div class="stat-label">Clock sources</div>
+      <div class="stat-value"><em>6</em></div>
+    </div>
+    <div>
+      <div class="stat-label">PLL outputs</div>
+      <div class="stat-value"><em>P / Q</em></div>
+    </div>
+    <div>
+      <div class="stat-label">Reset types</div>
+      <div class="stat-value"><em>3</em></div>
+    </div>
+  </div>
+</header>
+
+<!-- TABLE OF CONTENTS -->
+<nav class="toc">
+  <div class="toc-title">Mục lục // contents</div>
+  <ol>
+    <li><a href="#tongquan">Tổng quan module RCC</a></li>
+    <li><a href="#reset">Hệ thống Reset</a></li>
+    <li><a href="#clocks">Các nguồn Clock</a></li>
+    <li><a href="#pll">PLL và bộ nhân tần số</a></li>
+    <li><a href="#config">Cấu hình 100 MHz step-by-step</a></li>
+    <li><a href="#peripheral">Cấp clock cho Peripheral</a></li>
+    <li><a href="#usecases">Use case dùng nhiều clock đồng thời</a></li>
+    <li><a href="#power">Tối ưu năng lượng &amp; Sleep Mode</a></li>
+    <li><a href="#mco">Clock Security &amp; MCO output</a></li>
+    <li><a href="#registers">Tóm tắt thanh ghi chính</a></li>
+    <li><a href="#checklist">Checklist khi debug clock</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<!-- CHAPTER 01 -->
+<section class="chapter" id="tongquan">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 01</div>
+    <div class="ch-tag">Foundation</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Tổng quan <em>module RCC</em></h2>
+    <p>
+      RCC là một trong những module quan trọng nhất trong vi điều khiển STM32. Trước khi
+      bất kỳ peripheral nào — GPIO, UART, SPI, I2C, ADC, Timer... — có thể hoạt động,
+      RCC phải cấp clock cho nó. Hiểu RCC là <strong>điều kiện tiên quyết</strong>
+      để làm việc nghiêm túc với STM32.
+    </p>
+    <p>
+      RCC đảm nhiệm hai chức năng chính:
+    </p>
+    <ul class="bullets">
+      <li><strong>Quản lý reset</strong> — quyết định MCU khởi động lại như thế nào, từ nguồn nào, và phạm vi reset ảnh hưởng tới đâu.</li>
+      <li><strong>Quản lý clock</strong> — phân phối xung nhịp đến CPU, bus matrix, memory và toàn bộ peripheral. Cho phép kỹ sư tinh chỉnh tốc độ từng vùng để tối ưu giữa hiệu năng và năng lượng.</li>
+    </ul>
+    <p>
+      Trên STM32F411, RCC còn cho phép tắt clock cho các module không sử dụng — một kỹ thuật
+      tối ưu power consumption đơn giản nhưng cực kỳ hiệu quả trong thiết kế thiết bị chạy pin.
+    </p>
+
+    <div class="tip">
+      <strong>Hình dung đơn giản:</strong> RCC giống như trạm điện trung tâm của MCU.
+      Mặc dù chip đã được cấp nguồn (V<sub>DD</sub>), từng "tòa nhà" peripheral chỉ thực sự
+      sáng đèn khi RCC bật cầu dao tương ứng. Quên bật clock cho GPIO là bug số 1 của
+      người mới bắt đầu STM32.
+    </div>
+  </div>
+</section>
+
+<!-- CHAPTER 02 -->
+<section class="chapter" id="reset">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 02</div>
+    <div class="ch-tag">Reset</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Hệ thống <em>Reset</em></h2>
+    <p>
+      STM32F411 có <strong>ba loại reset</strong>, mỗi loại có nguồn kích hoạt và phạm vi
+      ảnh hưởng khác nhau. Phân biệt được chúng giúp ích rất lớn khi debug các trường hợp
+      MCU restart ngẫu nhiên ngoài hiện trường.
+    </p>
+
+    <h3>System Reset</h3>
+    <p>Reset toàn bộ chip <em>ngoại trừ</em> một số thanh ghi trong Backup domain. Các nguồn:</p>
+    <ul class="bullets">
+      <li><strong>NRST pin</strong> kéo xuống mức thấp (External Reset, ký hiệu PINRST).</li>
+      <li><strong>WWDG</strong> — Window Watchdog timeout.</li>
+      <li><strong>IWDG</strong> — Independent Watchdog timeout.</li>
+      <li><strong>Software reset</strong> — kỹ sư gọi <code>NVIC_SystemReset()</code>.</li>
+      <li><strong>Low-power management reset</strong> — khi vào Standby/Stop sai cách.</li>
+      <li><strong>Power reset</strong> — bao gồm POR/PDR và BOR.</li>
+    </ul>
+
+    <h3>Power Reset</h3>
+    <p>
+      Xảy ra khi cấp nguồn (POR — Power On Reset) hoặc ngắt nguồn (PDR — Power Down Reset),
+      cũng như khi MCU thoát khỏi chế độ Standby. Power reset <strong>clear toàn bộ thanh ghi</strong>
+      trừ Backup domain. Nếu hệ thống có battery backup cho RTC, dữ liệu trong backup
+      register vẫn còn nguyên qua các lần POR/PDR.
+    </p>
+
+    <h3>Backup Domain Reset</h3>
+    <p>
+      Chỉ ảnh hưởng đến Backup domain (RTC và backup registers). Xảy ra khi:
+    </p>
+    <ul class="bullets">
+      <li>Software set bit <code>BDRST</code> trong thanh ghi <code>RCC_BDCR</code>.</li>
+      <li>V<sub>DD</sub> và V<sub>BAT</sub> <em>cùng</em> mất nguồn.</li>
+    </ul>
+
+    <div class="note">
+      Khi debug mà MCU bị reset bất thường, hãy đọc thanh ghi <code>RCC_CSR</code> để biết
+      nguồn gây reset gần nhất. Các flag cần quan tâm: <code>LPWRRSTF</code>, <code>WWDGRSTF</code>,
+      <code>IWDGRSTF</code>, <code>SFTRSTF</code>, <code>PORRSTF</code>, <code>PINRSTF</code>,
+      <code>BORRSTF</code>. <strong>Sau khi đọc xong nhớ clear</strong> bằng cách set bit
+      <code>RMVF</code> — nếu không, lần debug sau sẽ thấy flag cũ và phán đoán sai.
+    </div>
+
+<pre data-lang="C — Reset cause detection"><span class="k">if</span> (RCC-&gt;CSR &amp; RCC_CSR_IWDGRSTF) {
+    <span class="f">log_error</span>(<span class="s">"Reset: IWDG timeout"</span>);
+}
+<span class="k">else if</span> (RCC-&gt;CSR &amp; RCC_CSR_SFTRSTF) {
+    <span class="f">log_info</span>(<span class="s">"Reset: software requested"</span>);
+}
+<span class="k">else if</span> (RCC-&gt;CSR &amp; RCC_CSR_PORRSTF) {
+    <span class="f">log_info</span>(<span class="s">"Reset: power-on"</span>);
+}
+<span class="c">// clear all reset flags</span>
+RCC-&gt;CSR |= RCC_CSR_RMVF;</pre>
+  </div>
+</section>
+
+<!-- CHAPTER 03 -->
+<section class="chapter" id="clocks">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 03</div>
+    <div class="ch-tag">Clock sources</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Các <em>nguồn clock</em></h2>
+    <p>
+      STM32F411 hỗ trợ nhiều nguồn clock khác nhau — mỗi nguồn phục vụ một mục đích riêng.
+      Lựa chọn đúng nguồn là quyết định thiết kế quan trọng, ảnh hưởng đến độ chính xác,
+      năng lượng tiêu thụ và BOM cost.
+    </p>
+
+    <div class="kv-grid">
+      <div class="kv-item">
+        <div class="kv-label">HSI</div>
+        <div class="kv-value">16 MHz</div>
+        <div class="kv-desc">Internal RC. Startup ~2µs. Độ chính xác ±1% ở 25°C, ±4% theo nhiệt độ. Mặc định sau reset.</div>
+      </div>
+      <div class="kv-item">
+        <div class="kv-label">HSE</div>
+        <div class="kv-value">4–26 MHz</div>
+        <div class="kv-desc">External crystal hoặc clock IN. Độ chính xác ~±20 ppm. Bắt buộc nếu dùng USB chuẩn.</div>
+      </div>
+      <div class="kv-item">
+        <div class="kv-label">LSI</div>
+        <div class="kv-value">~32 kHz</div>
+        <div class="kv-desc">Internal RC tốc độ thấp. Dùng cho IWDG và RTC khi không cần chính xác.</div>
+      </div>
+      <div class="kv-item">
+        <div class="kv-label">LSE</div>
+        <div class="kv-value">32.768 kHz</div>
+        <div class="kv-desc">External crystal cho RTC. Cần thiết khi đo thời gian thực chính xác.</div>
+      </div>
+      <div class="kv-item">
+        <div class="kv-label">PLL</div>
+        <div class="kv-value">Multiplier</div>
+        <div class="kv-desc">Không phải nguồn — bộ nhân tần. Lấy HSI/HSE làm input, tạo system clock cao tới 100 MHz.</div>
+      </div>
+      <div class="kv-item">
+        <div class="kv-label">PLLI2S</div>
+        <div class="kv-value">Audio PLL</div>
+        <div class="kv-desc">PLL phụ chuyên dụng cho I2S — cho phép sample rate chính xác cho audio.</div>
+      </div>
+    </div>
+
+    <h3>Lựa chọn nguồn — quy tắc thực tế</h3>
+    <ul class="bullets">
+      <li><strong>Prototyping nhanh, không kết nối truyền thông tốc độ cao:</strong> HSI là đủ. Không cần linh kiện ngoài, không tốn footprint.</li>
+      <li><strong>UART trên 115200 bps, CAN, USB:</strong> phải dùng HSE. Sai số HSI gây framing error.</li>
+      <li><strong>Thiết bị chạy pin cần đo thời gian dài hạn:</strong> bổ sung LSE 32.768 kHz cho RTC.</li>
+      <li><strong>Watchdog độc lập:</strong> dùng LSI — nó chạy ngay cả khi clock chính fail.</li>
+    </ul>
+
+    <div class="note">
+      HSI có spec là 16 MHz nhưng giá trị thực có thể trôi ±4% theo nhiệt độ. Nếu bạn
+      cấu hình UART 115200 bps từ HSI, ở nhiệt độ phòng có thể OK, nhưng khi để thiết bị
+      ngoài trời 50°C thì <em>baudrate lệch đủ gây lỗi</em>. Đây là bug kinh điển khó tái hiện
+      trên bàn làm việc.
+    </div>
+  </div>
+</section>
+
+<!-- CHAPTER 04 -->
+<section class="chapter" id="pll">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 04</div>
+    <div class="ch-tag">PLL</div>
+  </aside>
+  <div class="ch-body">
+    <h2><em>PLL</em> — bộ nhân tần số</h2>
+    <p>
+      PLL (Phase-Locked Loop) là cơ chế tạo ra clock cao từ một nguồn clock thấp ổn định.
+      Nguyên lý: chia tần đầu vào, nhân lên qua VCO, rồi chia tiếp để có output mong muốn.
+    </p>
+
+    <h3>Cấu trúc PLL chính</h3>
+
+    <pre data-lang="Formula"><span class="c">// Input clock: HSI (16 MHz) hoặc HSE (ví dụ 8 MHz)</span>
+
+VCO_input  = PLL_input / <span class="s">M</span>     <span class="c">// M: PLLM, 2..63</span>
+VCO_clock  = VCO_input * <span class="s">N</span>     <span class="c">// N: PLLN, 50..432</span>
+
+PLLCLK     = VCO_clock / <span class="s">P</span>     <span class="c">// P: PLLP, {2, 4, 6, 8} → SYSCLK</span>
+PLL48CK    = VCO_clock / <span class="s">Q</span>     <span class="c">// Q: PLLQ, 2..15 → USB, SDIO, RNG</span></pre>
+
+    <h3>Ràng buộc quan trọng (phải tuân thủ)</h3>
+    <ul class="bullets">
+      <li><code>VCO_input</code> phải nằm trong <strong>1 – 2 MHz</strong>. Chọn M sao cho đạt điều này, lý tưởng là 2 MHz để giảm jitter.</li>
+      <li><code>VCO_clock</code> phải nằm trong <strong>100 – 432 MHz</strong>.</li>
+      <li><code>PLLCLK</code> ≤ 100 MHz (giới hạn của F411).</li>
+      <li><code>PLL48CK</code> phải bằng <strong>48 MHz chính xác</strong> nếu dùng USB.</li>
+    </ul>
+
+    <h3>Ví dụ tính toán: HSE 8 MHz → 100 MHz</h3>
+    <pre data-lang="Math">Input = HSE = <span class="n">8 MHz</span>
+M     = <span class="n">8</span>     → VCO_input = 8 / 8 = <span class="n">1 MHz</span>  <span class="c">// OK (in 1–2 MHz)</span>
+N     = <span class="n">200</span>   → VCO_clock = 1 * 200 = <span class="n">200 MHz</span> <span class="c">// OK (in 100–432)</span>
+P     = <span class="n">2</span>     → PLLCLK    = 200 / 2 = <span class="n">100 MHz</span> <span class="c">// SYSCLK target</span>
+Q     = <span class="n">5</span>     → PLL48CK   = 200 / 5 = <span class="n">40 MHz</span>  <span class="c">// KHÔNG dùng USB được</span></pre>
+
+    <div class="note">
+      Cấu hình trên đạt 100 MHz CPU nhưng <strong>không thể dùng USB</strong>. Muốn cả 100 MHz CPU
+      và USB 48 MHz, phải chọn N để VCO chia hết cho cả P và Q. Ví dụ với HSE 8 MHz:
+      M=8, N=192, P=2 → SYSCLK 96 MHz, Q=4 → 48 MHz USB OK. Nếu bắt buộc 100 MHz CPU + USB,
+      thường phải dùng HSI/HSE 25 MHz và tinh chỉnh kỹ.
+    </div>
+
+    <h3>PLLI2S — PLL phụ cho audio</h3>
+    <p>
+      Audio yêu cầu sample rate chính xác (44.1 kHz, 48 kHz, 96 kHz). Nếu lấy clock I2S từ
+      PLL chính, ta phải đánh đổi: hoặc CPU đúng tốc độ, hoặc I2S đúng sample rate.
+      PLLI2S giải quyết bằng cách cung cấp clock độc lập cho I2S, cho phép tinh chỉnh
+      tự do mà không động đến SYSCLK.
+    </p>
+  </div>
+</section>
+
+<!-- CHAPTER 05 — CONFIG -->
+<section class="chapter" id="config">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 05</div>
+    <div class="ch-tag">Configuration</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Cấu hình <em>100 MHz</em> step-by-step</h2>
+    <p>
+      Đây là use case phổ biến nhất — chạy F411 ở tốc độ tối đa với HSE 8 MHz
+      (board Nucleo-F411RE, Black Pill F411CEU6). Trình tự bắt buộc phải đúng,
+      <strong>nếu đổi thứ tự thì code chạy nhưng kết quả sai</strong>.
+    </p>
+
+    <h3>Trình tự bắt buộc</h3>
+    <ol class="steps">
+      <li><strong>Bật HSE và đợi ready</strong> — set <code>HSEON</code> trong <code>RCC_CR</code>, poll bit <code>HSERDY</code> cho đến khi nó bằng 1.</li>
+      <li><strong>Cấu hình Flash latency TRƯỚC khi tăng clock</strong> — 100 MHz cần 3 wait states. Bật prefetch, instruction cache, data cache để bù performance.</li>
+      <li><strong>Cấu hình voltage scaling</strong> — set <code>VOS</code> trong <code>PWR_CR</code> sang Scale 1 (cho 100 MHz). Yêu cầu bật clock cho PWR trước qua APB1.</li>
+      <li><strong>Cấu hình bus prescalers</strong> — AHB /1, APB1 /2 (vì 100 MHz &gt; max APB1 50 MHz), APB2 /1.</li>
+      <li><strong>Cấu hình PLL</strong> — set PLLM, PLLN, PLLP, PLLQ, chọn HSE làm PLL source.</li>
+      <li><strong>Bật PLL và đợi ready</strong> — <code>PLLON</code> = 1, poll <code>PLLRDY</code>.</li>
+      <li><strong>Chuyển SYSCLK sang PLL</strong> — set <code>SW</code> = PLL trong <code>RCC_CFGR</code>, poll <code>SWS</code> bằng PLL.</li>
+      <li><strong>(Optional) Tắt HSI</strong> nếu không dùng nữa, để tiết kiệm năng lượng.</li>
+    </ol>
+
+<pre data-lang="C — Bare metal config (CMSIS)"><span class="k">void</span> <span class="f">SystemClock_Config_100MHz</span>(<span class="k">void</span>) {
+    <span class="c">// 1. Enable HSE and wait ready</span>
+    RCC-&gt;CR |= RCC_CR_HSEON;
+    <span class="k">while</span> (!(RCC-&gt;CR &amp; RCC_CR_HSERDY));
+
+    <span class="c">// 2. Flash: 3 wait states + caches + prefetch</span>
+    FLASH-&gt;ACR = FLASH_ACR_LATENCY_3WS
+               | FLASH_ACR_PRFTEN
+               | FLASH_ACR_ICEN
+               | FLASH_ACR_DCEN;
+
+    <span class="c">// 3. Voltage scale 1 (need PWR clock first)</span>
+    RCC-&gt;APB1ENR |= RCC_APB1ENR_PWREN;
+    PWR-&gt;CR     |= PWR_CR_VOS;
+
+    <span class="c">// 4. Prescalers: AHB=1, APB1=2, APB2=1</span>
+    RCC-&gt;CFGR = (RCC-&gt;CFGR &amp; ~(RCC_CFGR_HPRE | RCC_CFGR_PPRE1 | RCC_CFGR_PPRE2))
+              | RCC_CFGR_HPRE_DIV1
+              | RCC_CFGR_PPRE1_DIV2
+              | RCC_CFGR_PPRE2_DIV1;
+
+    <span class="c">// 5. PLL: HSE 8MHz / 8 * 200 / 2 = 100 MHz</span>
+    RCC-&gt;PLLCFGR = (<span class="n">8</span>     &lt;&lt; RCC_PLLCFGR_PLLM_Pos)    <span class="c">// M = 8</span>
+                 | (<span class="n">200</span>   &lt;&lt; RCC_PLLCFGR_PLLN_Pos)    <span class="c">// N = 200</span>
+                 | (<span class="n">0</span>     &lt;&lt; RCC_PLLCFGR_PLLP_Pos)    <span class="c">// P = 2 (00b)</span>
+                 | (<span class="n">4</span>     &lt;&lt; RCC_PLLCFGR_PLLQ_Pos)    <span class="c">// Q = 4</span>
+                 | RCC_PLLCFGR_PLLSRC_HSE;
+
+    <span class="c">// 6. Enable PLL</span>
+    RCC-&gt;CR |= RCC_CR_PLLON;
+    <span class="k">while</span> (!(RCC-&gt;CR &amp; RCC_CR_PLLRDY));
+
+    <span class="c">// 7. Switch SYSCLK to PLL</span>
+    RCC-&gt;CFGR = (RCC-&gt;CFGR &amp; ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL;
+    <span class="k">while</span> ((RCC-&gt;CFGR &amp; RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);
+
+    <span class="c">// 8. (Optional) Disable HSI</span>
+    RCC-&gt;CR &amp;= ~RCC_CR_HSION;
+
+    <span class="c">// Update CMSIS variable for HAL/SysTick</span>
+    SystemCoreClockUpdate();
+}</pre>
+
+    <div class="note">
+      Nếu set Flash latency <em>sau</em> khi đã chuyển sang clock 100 MHz, CPU sẽ đọc lệnh
+      từ Flash khi memory chưa kịp đáp ứng → <strong>hard fault hoặc treo MCU</strong>.
+      Tương tự nếu quên VOS=Scale 1, MCU có thể chạy nhưng không ổn định ở 100 MHz.
+      Đây là hai lỗi rất phổ biến khi tự viết clock init.
+    </div>
+  </div>
+</section>
+
+<!-- CHAPTER 06 — PERIPHERAL CLOCK -->
+<section class="chapter" id="peripheral">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 06</div>
+    <div class="ch-tag">Peripheral clock</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Cấp clock cho <em>peripheral</em></h2>
+    <p>
+      Sau khi system clock đã chạy, mỗi peripheral vẫn cần <strong>bật clock riêng</strong>
+      qua các thanh ghi enable của RCC. Đây là chỗ kỹ sư mới hay quên và bị "GPIO không output gì cả"
+      dù code đúng.
+    </p>
+
+    <h3>Các thanh ghi enable</h3>
+    <ul class="bullets">
+      <li><code>RCC_AHB1ENR</code> — bật clock cho GPIOA-H, CRC, DMA1, DMA2.</li>
+      <li><code>RCC_AHB2ENR</code> — bật clock cho USB OTG FS.</li>
+      <li><code>RCC_APB1ENR</code> — bật clock cho TIM2-5, WWDG, SPI2-3, USART2, I2C1-3, PWR.</li>
+      <li><code>RCC_APB2ENR</code> — bật clock cho TIM1/9-11, USART1/6, SPI1/4/5, ADC1, SYSCFG.</li>
+    </ul>
+
+<pre data-lang="C — Enable GPIO &amp; UART clocks"><span class="c">// Trước khi cấu hình GPIO chân, phải bật clock của port</span>
+RCC-&gt;AHB1ENR |= RCC_AHB1ENR_GPIOAEN;   <span class="c">// GPIOA</span>
+RCC-&gt;AHB1ENR |= RCC_AHB1ENR_GPIOBEN;   <span class="c">// GPIOB</span>
+
+<span class="c">// USART2 trên APB1</span>
+RCC-&gt;APB1ENR |= RCC_APB1ENR_USART2EN;
+
+<span class="c">// USART1 trên APB2</span>
+RCC-&gt;APB2ENR |= RCC_APB2ENR_USART1EN;
+
+<span class="c">// HAL tương đương:</span>
+<span class="f">__HAL_RCC_GPIOA_CLK_ENABLE</span>();
+<span class="f">__HAL_RCC_USART2_CLK_ENABLE</span>();</pre>
+
+    <h3>Thanh ghi LP (low-power) — chạy clock trong Sleep Mode</h3>
+    <p>
+      Các thanh ghi <code>RCC_AHB1LPENR</code>, <code>RCC_APB1LPENR</code>, ... quyết định
+      peripheral nào tiếp tục chạy khi MCU vào Sleep Mode. Mặc định nhiều peripheral
+      vẫn ON ngay cả khi sleep — nếu muốn tiết kiệm tối đa năng lượng, clear các bit này
+      cho mọi module không cần thiết.
+    </p>
+
+    <div class="tip">
+      <strong>Pattern an toàn:</strong> luôn dùng macro của HAL (<code>__HAL_RCC_xxx_CLK_ENABLE()</code>)
+      thay vì gán trực tiếp bit. Lý do: macro này có insert một <code>__DSB()</code> đảm bảo
+      clock đã ready trước khi code dòng kế tiếp truy cập thanh ghi peripheral.
+      Truy cập peripheral ngay sau khi enable clock (trên cùng một dòng) có thể bị bỏ qua
+      do pipeline issue — bug rất khó tìm.
+    </div>
+  </div>
+</section>
+
+<!-- CHAPTER 07 — MULTI-CLOCK USE CASES (MỚI) -->
+<section class="chapter" id="usecases">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 07</div>
+    <div class="ch-tag">Multi-clock scenarios</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Khi dùng <em>nhiều clock</em> đồng thời</h2>
+    <p>
+      Trong thực tế, một thiết kế hiếm khi chỉ dùng một nguồn clock. Một sản phẩm thương mại
+      điển hình có thể vận hành HSE cho CPU, LSE cho RTC, LSI cho watchdog, và PLLI2S cho audio
+      — <strong>cả bốn cùng lúc</strong>. Hiểu cách phối hợp chúng giúp tránh các bug rất khó debug
+      về sau, đặc biệt là khi vào/ra low-power mode.
+    </p>
+
+    <h3>Nguyên tắc chung khi dùng nhiều clock</h3>
+    <ul class="bullets">
+      <li><strong>Mỗi clock độc lập có flag READY riêng</strong> — luôn poll READY trước khi switch hoặc sử dụng. Đừng giả định nguồn đã ổn định ngay sau khi set ON.</li>
+      <li><strong>Backup domain phải được unlock</strong> trước khi cấu hình LSE/RTC. Set <code>PWR_CR.DBP = 1</code> sau khi bật clock PWR.</li>
+      <li><strong>RTC source chỉ chọn được MỘT LẦN</strong> sau power-on. Muốn đổi nguồn phải Backup Domain Reset trước.</li>
+      <li><strong>Thứ tự enable matters</strong> — luôn bật clock nguồn trước, đợi ready, mới cấu hình bộ chia/multiplier hoặc switch.</li>
+      <li><strong>Khi vào Stop mode</strong>, HSE/HSI/PLL đều tắt; chỉ LSE/LSI còn chạy. Sau wakeup phải re-init toàn bộ system clock.</li>
+    </ul>
+
+    <!-- USE CASE 1 -->
+    <div class="case">
+      <div class="case-header">
+        <div class="case-id">CASE / 01</div>
+        <div class="case-title">CPU chạy nhanh + RTC chính xác lâu dài</div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">HSE 8 MHz</span>
+        <span class="pill on">PLL → 100 MHz</span>
+        <span class="pill on">LSE 32.768 kHz</span>
+        <span class="pill">LSI off</span>
+      </div>
+      <div class="case-body">
+        <h4>Kịch bản</h4>
+        <p>
+          Thiết bị data logger ghi nhận sự kiện kèm timestamp. CPU cần 100 MHz để xử lý
+          dữ liệu sensor, RTC phải chính xác để timestamp không bị drift sau vài tháng.
+        </p>
+        <h4>Cách phối hợp</h4>
+        <ul class="bullets">
+          <li>SYSCLK = PLLCLK lấy nguồn từ HSE — cấu hình như chương 05.</li>
+          <li>Sau khi clock chính ổn định, bật clock cho PWR: <code>RCC_APB1ENR.PWREN = 1</code>.</li>
+          <li>Unlock backup domain: <code>PWR_CR.DBP = 1</code>.</li>
+          <li>Bật LSE: <code>RCC_BDCR.LSEON = 1</code>, poll <code>LSERDY</code> (mất ~1-2 giây với thạch anh 32.768 kHz).</li>
+          <li>Chọn LSE làm nguồn RTC: <code>RCC_BDCR.RTCSEL = 01b</code>, sau đó <code>RCC_BDCR.RTCEN = 1</code>.</li>
+          <li>Lock lại backup domain: <code>PWR_CR.DBP = 0</code>.</li>
+        </ul>
+        <h4>Lưu ý</h4>
+        <p>
+          LSE start-up rất chậm so với HSE — đừng block CPU chờ <code>LSERDY</code>.
+          Implement asynchronous: bật LSE → cho CPU làm việc khác → kiểm tra ready trong loop chính
+          hoặc qua ngắt <code>RCC_CIR.LSERDYF</code>.
+        </p>
+      </div>
+    </div>
+
+    <!-- USE CASE 2 -->
+    <div class="case">
+      <div class="case-header">
+        <div class="case-id">CASE / 02</div>
+        <div class="case-title">USB + UART tốc độ cao + CPU max speed</div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">HSE 25 MHz</span>
+        <span class="pill on">PLL P → 96 MHz</span>
+        <span class="pill on">PLL Q → 48 MHz</span>
+        <span class="pill warn">USB needs ±0.25%</span>
+      </div>
+      <div class="case-body">
+        <h4>Kịch bản</h4>
+        <p>
+          Thiết bị USB-to-Serial bridge. USB OTG cần đúng 48 MHz, UART chạy 921600 bps cần
+          tần số CPU đủ cao và chính xác. CPU cần càng nhanh càng tốt để buffer dữ liệu.
+        </p>
+        <h4>Cách phối hợp</h4>
+        <ul class="bullets">
+          <li>HSE 8 MHz với cấu hình M=8, N=192, P=2, Q=4 → SYSCLK 96 MHz, PLL48CK đúng 48 MHz.</li>
+          <li><em>Không thể đạt 100 MHz</em> nếu muốn USB hoạt động chuẩn — phải chấp nhận 96 MHz.</li>
+          <li>UART lấy clock từ PCLK1 (APB1) hoặc PCLK2 (APB2) tùy peripheral; 921600 bps OK với cả hai vì PLL có độ chính xác cao.</li>
+          <li>Enable USB clock qua <code>RCC_AHB2ENR.OTGFSEN</code>, đảm bảo PLL48CK đã ổn định trước.</li>
+        </ul>
+        <h4>Lưu ý</h4>
+        <p>
+          USB chỉ tolerate ±0.25% sai số clock. Tuyệt đối <strong>không dùng HSI</strong> cho USB
+          — sai số HSI vượt xa giới hạn này. Đây là lý do mọi board USB chính hãng đều có
+          thạch anh ngoài.
+        </p>
+      </div>
+    </div>
+
+    <!-- USE CASE 3 -->
+    <div class="case">
+      <div class="case-header">
+        <div class="case-id">CASE / 03</div>
+        <div class="case-title">CPU + Audio I2S sample rate chính xác</div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">HSE 8 MHz</span>
+        <span class="pill on">PLL → SYSCLK</span>
+        <span class="pill on">PLLI2S → I2SCLK</span>
+      </div>
+      <div class="case-body">
+        <h4>Kịch bản</h4>
+        <p>
+          Thiết bị phát nhạc qua DAC I2S. Sample rate 44.1 kHz hoặc 48 kHz phải chính xác
+          để không méo tiếng. CPU cần đủ nhanh để decode MP3/FLAC.
+        </p>
+        <h4>Cách phối hợp</h4>
+        <ul class="bullets">
+          <li>PLL chính cấu hình bình thường cho SYSCLK (ví dụ 96 hoặc 100 MHz).</li>
+          <li>PLLI2S cấu hình riêng cho I2S — tham khảo bảng PLLI2S trong RM0383 để tìm tổ hợp N/R cho từng sample rate.</li>
+          <li>Set <code>RCC_CFGR.I2SSRC = 0</code> để chọn PLLI2S làm nguồn I2S (giá trị mặc định, không phải external clock).</li>
+          <li>Bật PLLI2S: <code>RCC_CR.PLLI2SON = 1</code>, poll <code>PLLI2SRDY</code>.</li>
+        </ul>
+        <h4>Lưu ý</h4>
+        <p>
+          Nếu thiết kế hỗ trợ nhiều sample rate (44.1 kHz <em>và</em> 48 kHz), cần reconfigure
+          PLLI2S khi chuyển bài hát. PLLI2S phải tắt trước khi thay đổi PLLI2SCFGR — <em>không thể
+          ghi vào PLLI2SCFGR khi PLLI2S đang on</em>. Workflow: tắt I2S → tắt PLLI2S → set tham số mới
+          → bật lại.
+        </p>
+      </div>
+    </div>
+
+    <!-- USE CASE 4 -->
+    <div class="case">
+      <div class="case-header">
+        <div class="case-id">CASE / 04</div>
+        <div class="case-title">Watchdog độc lập + CPU thay đổi tốc độ động</div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">LSI 32 kHz</span>
+        <span class="pill on">IWDG always-on</span>
+        <span class="pill on">HSI/PLL biến đổi</span>
+      </div>
+      <div class="case-body">
+        <h4>Kịch bản</h4>
+        <p>
+          Thiết bị thay đổi tốc độ CPU runtime để tiết kiệm pin: chạy 100 MHz khi xử lý data,
+          giảm xuống 16 MHz (HSI) khi idle. Watchdog phải hoạt động bất kể CPU đang chạy nguồn nào.
+        </p>
+        <h4>Cách phối hợp</h4>
+        <ul class="bullets">
+          <li>LSI luôn bật ngay từ startup: <code>RCC_CSR.LSION = 1</code>, poll <code>LSIRDY</code>.</li>
+          <li>IWDG khởi tạo timeout phù hợp với chu kỳ feed dài nhất khi CPU chạy chậm — nhớ rằng watchdog clock <em>không thay đổi</em> theo CPU clock.</li>
+          <li>Khi switch giữa HSI ↔ PLL: chỉ thao tác RCC_CFGR.SW và poll SWS. <em>Không tắt</em> LSI/IWDG trong quá trình switch.</li>
+          <li>Nếu giảm CPU clock, recalculate <code>SystemCoreClock</code> và update HAL_Delay base.</li>
+        </ul>
+        <h4>Lưu ý</h4>
+        <p>
+          LSI có sai số ±50% theo nhiệt độ — cấu hình IWDG timeout phải có biên rộng để
+          tránh false trigger ở nhiệt độ thấp/cao. Nguyên tắc thực tế: nếu cần feed mỗi 1 giây,
+          set timeout 2-3 giây.
+        </p>
+      </div>
+    </div>
+
+    <!-- USE CASE 5 -->
+    <div class="case">
+      <div class="case-header">
+        <div class="case-id">CASE / 05</div>
+        <div class="case-title">Combo "all-on" — IoT node phức tạp</div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">HSE 8 MHz</span>
+        <span class="pill on">PLL 96 MHz + USB</span>
+        <span class="pill on">LSE → RTC</span>
+        <span class="pill on">LSI → IWDG</span>
+        <span class="pill on">PLLI2S → audio</span>
+      </div>
+      <div class="case-body">
+        <h4>Kịch bản</h4>
+        <p>
+          Smart device hoàn chỉnh: kết nối USB tới host, đo thời gian thực qua RTC, phát audio
+          notification, có watchdog hardware bảo vệ. Tất cả nguồn clock đều phải hoạt động.
+        </p>
+        <h4>Trình tự khởi tạo đúng</h4>
+        <ol class="steps">
+          <li>POR → MCU chạy HSI mặc định.</li>
+          <li>Đọc <code>RCC_CSR</code> để biết nguồn reset, sau đó clear bằng <code>RMVF</code>.</li>
+          <li>Bật LSI (cho IWDG sớm nhất có thể) → poll LSIRDY.</li>
+          <li>Khởi tạo IWDG với timeout an toàn → từ giờ watchdog đã hoạt động, mọi treo sẽ được phục hồi.</li>
+          <li>Bật HSE → poll HSERDY.</li>
+          <li>Cấu hình Flash latency, VOS, prescalers, PLL → switch SYSCLK sang PLL.</li>
+          <li>Bật clock PWR (APB1), unlock backup domain (<code>DBP</code>).</li>
+          <li>Bật LSE (asynchronous — không block CPU) → khi LSERDY, gán RTC source và enable RTC.</li>
+          <li>Cấu hình PLLI2S theo sample rate audio yêu cầu → enable PLLI2S khi cần phát âm thanh.</li>
+          <li>Enable USB OTG clock và stack.</li>
+          <li>Bắt đầu feed watchdog định kỳ trong main loop.</li>
+        </ol>
+        <h4>Lưu ý vận hành</h4>
+        <ul class="bullets">
+          <li>Tổng thời gian khởi động của LSE có thể tới 2 giây — không chặn flow chính chờ nó.</li>
+          <li>Nếu sản phẩm có battery backup, kiểm tra <code>RCC_BDCR.LSERDY</code> ngay đầu code: nếu đã ready từ lần boot trước, không cần re-init RTC.</li>
+          <li>Trong main loop, nếu CPU vào Stop mode, sau wakeup phải re-init HSE + PLL (LSE/LSI/RTC giữ nguyên).</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- USE CASE 6 -->
+    <div class="case">
+      <div class="case-header">
+        <div class="case-id">CASE / 06</div>
+        <div class="case-title">Chuyển tốc độ runtime — Dynamic Frequency Scaling</div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">HSI 16 MHz (idle)</span>
+        <span class="pill on">PLL 100 MHz (active)</span>
+        <span class="pill warn">Re-config Flash latency</span>
+      </div>
+      <div class="case-body">
+        <h4>Kịch bản</h4>
+        <p>
+          Thiết bị wearable: 95% thời gian chỉ cần đo nhịp tim ở tốc độ thấp (HSI 16 MHz),
+          5% thời gian cần xử lý FFT trên dữ liệu thì boost lên 100 MHz. Mục tiêu: kéo dài tuổi thọ pin.
+        </p>
+        <h4>Cách phối hợp — Switch từ HSI sang PLL</h4>
+        <ol class="steps">
+          <li>Đang chạy HSI 16 MHz → Flash 0 wait state.</li>
+          <li><strong>Tăng Flash latency lên 3 WS TRƯỚC</strong> — Flash 0WS vẫn hoạt động được ở mọi clock thấp hơn, không sao.</li>
+          <li>Bật VOS Scale 1 nếu chưa.</li>
+          <li>Đảm bảo HSE đã ON và HSERDY.</li>
+          <li>Cấu hình prescalers cho 100 MHz (APB1 /2, APB2 /1).</li>
+          <li>Bật PLL → đợi PLLRDY → switch SYSCLK.</li>
+          <li>Update SystemCoreClock.</li>
+        </ol>
+        <h4>Switch ngược từ PLL về HSI</h4>
+        <ol class="steps">
+          <li>Đảm bảo HSI vẫn ON (nếu đã tắt thì bật lại + đợi HSIRDY).</li>
+          <li>Cấu hình prescalers về /1 (HSI 16 MHz dưới mọi giới hạn).</li>
+          <li>Switch SYSCLK = HSI → đợi SWS = HSI.</li>
+          <li><strong>Sau khi switch xong</strong> mới giảm Flash latency về 0 WS.</li>
+          <li>Tắt PLL để tiết kiệm điện: <code>RCC_CR.PLLON = 0</code>.</li>
+          <li>Có thể hạ VOS xuống Scale 2.</li>
+        </ol>
+        <h4>Lưu ý</h4>
+        <p>
+          Khi switch clock, mọi peripheral đang chạy (UART, SPI, Timer...) đều bị ảnh hưởng baudrate/frequency.
+          <em>Phải reconfigure</em> baudrate sau khi đổi PCLK, nếu không UART đột nhiên gửi ra ký tự rác.
+          Pattern an toàn: stop peripheral → đổi clock → reconfig peripheral → start lại.
+        </p>
+      </div>
+    </div>
+
+    <div class="tip">
+      <strong>Pattern chung khi phối hợp nhiều clock:</strong> Hãy nghĩ theo "domain" độc lập —
+      domain CPU/bus (HSE+PLL), domain RTC (LSE), domain watchdog (LSI), domain audio (PLLI2S),
+      domain USB (PLL Q). Mỗi domain có lifecycle riêng. Khi thiết kế firmware,
+      tách init từng domain thành function riêng (init_cpu_clock, init_rtc_clock, init_iwdg_clock...)
+      — code dễ đọc hơn nhiều so với gom hết vào một SystemClock_Config khổng lồ.
+    </div>
+  </div>
+</section>
+
+<!-- CHAPTER 08 — LOW POWER -->
+<section class="chapter" id="power">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 08</div>
+    <div class="ch-tag">Low power</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Tối ưu <em>năng lượng</em> qua RCC</h2>
+    <p>
+      RCC đóng vai trò trung tâm trong chiến lược tiết kiệm điện. Vài kỹ thuật phổ biến:
+    </p>
+
+    <h3>1. Tắt clock peripheral không dùng</h3>
+    <p>
+      Mỗi peripheral đang được cấp clock đều tiêu thụ điện ngay cả khi không hoạt động.
+      Sau khi xong việc với một peripheral, hãy clear bit enable tương ứng. Một ứng dụng
+      điển hình tiết kiệm 20-40% dòng động chỉ bằng cách audit lại các bit ENR.
+    </p>
+
+    <h3>2. Giảm tần số khi không cần</h3>
+    <p>
+      Không phải lúc nào cũng cần 100 MHz. Khi MCU chờ event (ngủ đông giữa các chu kỳ),
+      có thể chuyển sang HSI 16 MHz hoặc thấp hơn. Cortex-M4 tiêu thụ tuyến tính theo
+      clock — giảm clock 4 lần thì current giảm gần 4 lần ở mạch logic.
+    </p>
+
+    <h3>3. Sleep / Stop / Standby</h3>
+    <ul class="bullets">
+      <li><strong>Sleep Mode</strong> — CPU dừng, clock vẫn chạy cho peripheral. Wakeup gần như tức thì (vài µs). Dùng cho idle ngắn.</li>
+      <li><strong>Stop Mode</strong> — Hầu hết clock dừng (HSI, HSE, PLL off). Chỉ LSI/LSE chạy. Dòng vài µA. Wakeup ~10-100µs. Cần re-init clock sau khi wake.</li>
+      <li><strong>Standby Mode</strong> — Toàn bộ digital off trừ backup domain. Dòng &lt; 1µA. Wakeup = reset (mất hết RAM). Dùng cho thiết bị đo định kỳ.</li>
+    </ul>
+
+    <h3>4. Voltage scaling</h3>
+    <p>
+      Trong PWR có thanh ghi VOS điều chỉnh áp lõi. <strong>Scale 2</strong> (mặc định)
+      đủ cho MCU chạy đến 84 MHz và tiết kiệm hơn. Nếu ứng dụng không cần 100 MHz,
+      cứ giữ Scale 2.
+    </p>
+  </div>
+</section>
+
+<!-- CHAPTER 09 -->
+<section class="chapter" id="mco">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 09</div>
+    <div class="ch-tag">Output / Security</div>
+  </aside>
+  <div class="ch-body">
+    <h2><em>Clock Security</em> &amp; MCO output</h2>
+
+    <h3>Clock Security System (CSS)</h3>
+    <p>
+      CSS là cơ chế bảo vệ khi HSE fail (thạch anh hỏng, board ẩm, mạch in lỗi). Khi enable CSS,
+      nếu HSE biến mất, RCC tự động:
+    </p>
+    <ul class="bullets">
+      <li>Tạo ra ngắt NMI (non-maskable interrupt).</li>
+      <li>Tự chuyển SYSCLK về HSI để MCU vẫn tiếp tục chạy.</li>
+    </ul>
+    <p>
+      Đây là tính năng <strong>bắt buộc</strong> trong các sản phẩm thương mại — không có CSS,
+      một thạch anh hỏng đồng nghĩa thiết bị im lặng vĩnh viễn. Bật CSS bằng cách set
+      <code>CSSON</code> trong <code>RCC_CR</code>, sau đó implement handler:
+    </p>
+
+<pre data-lang="C — CSS handler"><span class="k">void</span> <span class="f">NMI_Handler</span>(<span class="k">void</span>) {
+    <span class="k">if</span> (RCC-&gt;CIR &amp; RCC_CIR_CSSF) {
+        RCC-&gt;CIR |= RCC_CIR_CSSC;       <span class="c">// clear CSS flag</span>
+        <span class="f">log_critical</span>(<span class="s">"HSE failure — fallback to HSI"</span>);
+        <span class="c">// optionally trigger safe shutdown or alert</span>
+    }
+}</pre>
+
+    <h3>MCO — Microcontroller Clock Output</h3>
+    <p>
+      MCO cho phép xuất một clock nội ra chân ngoài để:
+    </p>
+    <ul class="bullets">
+      <li>Cấp clock cho IC khác trên board (codec audio, FPGA, MCU phụ).</li>
+      <li>Đo clock bằng oscilloscope để debug — <strong>kỹ thuật vô giá khi PLL không chạy đúng</strong>.</li>
+    </ul>
+    <p>
+      STM32F411 có MCO1 (chân PA8) và MCO2 (chân PC9). Chọn nguồn và prescaler qua các bit
+      <code>MCO1</code>, <code>MCO1PRE</code>, <code>MCO2</code>, <code>MCO2PRE</code> trong
+      <code>RCC_CFGR</code>.
+    </p>
+
+    <div class="tip">
+      <strong>Debug PLL bằng MCO:</strong> Khi nghi ngờ clock không đúng tốc độ, output PLLCLK
+      ra MCO2 với prescaler /5, đo bằng scope. Nếu kỳ vọng 100 MHz nhưng đo được 20 MHz có nghĩa
+      MCU đang chạy từ HSI 16 MHz × 5/4 — PLL chưa được kích hoạt hoặc switch chưa thành công.
+    </div>
+  </div>
+</section>
+
+<!-- CHAPTER 10 -->
+<section class="chapter" id="registers">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 10</div>
+    <div class="ch-tag">Registers</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Tóm tắt <em>thanh ghi</em> chính</h2>
+    <p>
+      Toàn bộ RCC nằm trên một block thanh ghi tại địa chỉ <code>0x40023800</code>.
+      Bảng dưới liệt kê các thanh ghi cần thuộc lòng.
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Register</th><th>Vai trò</th><th>Bit quan trọng</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>RCC_CR</td><td>Clock control: bật/tắt nguồn, đọc ready flag</td><td>HSION, HSIRDY, HSEON, HSERDY, PLLON, PLLRDY, CSSON</td></tr>
+          <tr><td>RCC_PLLCFGR</td><td>Cấu hình PLL chính</td><td>PLLM, PLLN, PLLP, PLLQ, PLLSRC</td></tr>
+          <tr><td>RCC_CFGR</td><td>Chọn SYSCLK source, prescalers, MCO</td><td>SW, SWS, HPRE, PPRE1, PPRE2, MCO1, MCO2</td></tr>
+          <tr><td>RCC_CIR</td><td>Clock interrupt — ready flag &amp; CSS</td><td>LSIRDYF, HSIRDYF, HSERDYF, PLLRDYF, CSSF</td></tr>
+          <tr><td>RCC_AHB1ENR</td><td>Enable clock AHB1 (GPIO, DMA, CRC)</td><td>GPIOxEN, DMA1EN, DMA2EN, CRCEN</td></tr>
+          <tr><td>RCC_APB1ENR</td><td>Enable clock APB1 peripherals</td><td>TIM2-5EN, SPI2-3EN, USART2EN, I2Cx EN, PWREN</td></tr>
+          <tr><td>RCC_APB2ENR</td><td>Enable clock APB2 peripherals</td><td>TIM1EN, USART1/6EN, ADC1EN, SYSCFGEN, SPI1/4/5EN</td></tr>
+          <tr><td>RCC_BDCR</td><td>Backup domain: LSE, RTC source &amp; enable</td><td>LSEON, LSERDY, RTCSEL, RTCEN, BDRST</td></tr>
+          <tr><td>RCC_CSR</td><td>Control/status: nguồn reset, LSI</td><td>LSION, LSIRDY, RMVF, PINRSTF, IWDGRSTF, SFTRSTF</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- CHAPTER 11 -->
+<section class="chapter" id="checklist">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 11</div>
+    <div class="ch-tag">Checklist</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Checklist khi <em>debug</em> clock</h2>
+    <p>
+      Khi MCU chạy sai tốc độ, UART lệch baudrate, hoặc treo sau khi cấu hình clock — chạy qua
+      checklist này theo thứ tự:
+    </p>
+
+    <ol class="steps">
+      <li><strong>Đọc <code>RCC_CFGR.SWS</code></strong> — bit này cho biết SYSCLK đang thực sự chạy từ nguồn nào (HSI / HSE / PLL). Nếu khác kỳ vọng → chưa switch thành công.</li>
+      <li><strong>Đọc <code>RCC_CR.PLLRDY</code></strong> — nếu PLL chưa lock, mọi cấu hình PLLCFGR vô nghĩa. Thường do VCO_input ngoài dải 1–2 MHz.</li>
+      <li><strong>Kiểm tra Flash latency</strong> — đọc <code>FLASH_ACR.LATENCY</code>, so với bảng datasheet theo VOS và tần số.</li>
+      <li><strong>Output MCO ra scope</strong> — phương án cuối cùng nhưng không thể nói dối. Đo trực tiếp clock.</li>
+      <li><strong>Kiểm tra HSE</strong> — nếu dùng thạch anh, check <code>RCC_CR.HSERDY</code>. Nếu mãi không lên, có thể: thạch anh chết, cap matching sai (thường 18-22pF), trace dài quá, hoặc footprint sai chân.</li>
+      <li><strong>Gọi <code>SystemCoreClockUpdate()</code></strong> sau mọi thay đổi clock — biến <code>SystemCoreClock</code> được dùng bởi HAL_Delay, SysTick, các driver UART... Quên gọi → mọi tính toán thời gian sai.</li>
+      <li><strong>Đọc <code>RCC_CSR</code> ngay đầu main</strong> — biết nguồn reset trước đó. WWDG/IWDG reset thường chỉ ra clock chậm hơn kỳ vọng làm watchdog feed không kịp.</li>
+    </ol>
+
+    <div class="tip">
+      <strong>Quy tắc vàng:</strong> Mọi vấn đề khó hiểu trong STM32 — UART giải mã ra ký tự rác,
+      PWM sai duty, timer interrupt bắn quá nhanh — <em>90% là do clock không đúng như tưởng</em>.
+      Verify clock bằng MCO trước khi đào sâu vào logic.
+    </div>
+
+    <h3>Tài nguyên tham khảo</h3>
+    <ul class="bullets">
+      <li>RM0383 — Reference Manual STM32F411xC/E, chương 6 (Reset and Clock Control).</li>
+      <li>AN4488 — Getting Started with STM32F4 Series.</li>
+      <li>CubeMX — công cụ trực quan hóa clock tree, đáng dùng để verify tính toán PLL.</li>
+    </ul>
+  </div>
+</section>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      RCC<br>STM32F411<em>.</em>
+    </div>
+    <div class="footer-meta">
+      <div>// Reference document for embedded engineers</div>
+      <div>// Compiled · 2026</div>
+      <div>// 100 MHz · ARM Cortex-M4 · ST Microelectronics</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

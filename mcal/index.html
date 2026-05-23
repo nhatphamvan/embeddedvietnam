@@ -300,7 +300,7 @@
   <p>Microcontroller Abstraction Layer — từ lý thuyết đến triển khai AUTOSAR trên STM32</p>
   <div class="hero-meta">
     <span>📦 3 Module</span>
-    <span>📄 9 bài học</span>
+    <span>📄 8 bài học</span>
     <span>⚡ Miễn phí</span>
     <span>🇻🇳 Tiếng Việt</span>
   </div>
@@ -322,9 +322,9 @@
   <div class="start-cta">
     <div class="cta-text">
       <h3>Bắt đầu từ bài đầu tiên</h3>
-      <p>Clock Tree — cách vi điều khiển tạo ra xung nhịp từ HSE/HSI qua PLL</p>
+      <p>RCC STM32F411 — Reset and Clock Control, PLL, bus prescalers</p>
     </div>
-    <a href="modules/01-mcu/01-clock-tree.html">Bắt đầu học →</a>
+    <a href="modules/01-mcu/rcc-stm32f411.html">Bắt đầu học →</a>
   </div>
 
   <!-- Modules -->
@@ -337,37 +337,24 @@
         <div class="module-icon mcu">🔧</div>
         <div>
           <h2>Module 1 — MCU</h2>
-          <p>Clock, PLL, MCU Driver API</p>
+          <p>RCC, Clock Tree, MCU Driver MCAL</p>
         </div>
       </div>
       <div class="lesson-list">
-        <a class="lesson-item" href="modules/01-mcu/01-clock-tree.html">
-          <span class="lesson-dot first" data-lesson="mcu-01-clock-tree">1</span>
-          Clock Tree
+        <a class="lesson-item" href="modules/01-mcu/rcc-stm32f411.html">
+          <span class="lesson-dot first" data-lesson="mcu-rcc-stm32f411">1</span>
+          RCC — STM32F411xC/E
           <span class="tags">
             <span class="tag theory">Lý thuyết</span>
-            <span class="tag anim">Animation</span>
             <span class="tag code">Code</span>
-            <span class="tag quiz">Quiz</span>
           </span>
         </a>
-        <a class="lesson-item" href="modules/01-mcu/02-pll.html">
-          <span class="lesson-dot" data-lesson="mcu-02-pll">2</span>
-          PLL — Phase Locked Loop
-          <span class="tags">
-            <span class="tag theory">Lý thuyết</span>
-            <span class="tag anim">Animation</span>
-            <span class="tag code">Code</span>
-            <span class="tag quiz">Quiz</span>
-          </span>
-        </a>
-        <a class="lesson-item" href="modules/01-mcu/03-mcal-api.html">
-          <span class="lesson-dot" data-lesson="mcu-03-mcal-api">3</span>
-          MCU Driver API (MCAL)
+        <a class="lesson-item" href="modules/01-mcu/mcu-driver-mcal.html">
+          <span class="lesson-dot" data-lesson="mcu-driver-mcal">2</span>
+          MCU Driver MCAL — STM32F4 &amp; F1
           <span class="tags">
             <span class="tag theory">Lý thuyết</span>
             <span class="tag code">Code</span>
-            <span class="tag quiz">Quiz</span>
           </span>
         </a>
       </div>
@@ -375,7 +362,7 @@
         <div class="module-progress-bar">
           <div class="module-progress-fill" id="mod1Fill" style="width:0%"></div>
         </div>
-        <span class="module-progress-text" id="mod1Count">0/3 bài</span>
+        <span class="module-progress-text" id="mod1Count">0/2 bài</span>
       </div>
     </div>
 
@@ -390,17 +377,17 @@
       </div>
       <div class="lesson-list">
         <a class="lesson-item locked" href="#">
-          <span class="lesson-dot" data-lesson="com-01-spi">4</span>
+          <span class="lesson-dot" data-lesson="com-01-spi">3</span>
           SPI Driver
           <span class="tags"><span class="tag coming">Sắp ra</span></span>
         </a>
         <a class="lesson-item locked" href="#">
-          <span class="lesson-dot" data-lesson="com-02-i2c">5</span>
+          <span class="lesson-dot" data-lesson="com-02-i2c">4</span>
           I2C Driver
           <span class="tags"><span class="tag coming">Sắp ra</span></span>
         </a>
         <a class="lesson-item locked" href="#">
-          <span class="lesson-dot" data-lesson="com-03-uart">6</span>
+          <span class="lesson-dot" data-lesson="com-03-uart">5</span>
           UART Driver
           <span class="tags"><span class="tag coming">Sắp ra</span></span>
         </a>
@@ -424,17 +411,17 @@
       </div>
       <div class="lesson-list">
         <a class="lesson-item locked" href="#">
-          <span class="lesson-dot" data-lesson="adc-01">7</span>
+          <span class="lesson-dot" data-lesson="adc-01">6</span>
           ADC Driver
           <span class="tags"><span class="tag coming">Sắp ra</span></span>
         </a>
         <a class="lesson-item locked" href="#">
-          <span class="lesson-dot" data-lesson="pwm-01">8</span>
+          <span class="lesson-dot" data-lesson="pwm-01">7</span>
           PWM Driver
           <span class="tags"><span class="tag coming">Sắp ra</span></span>
         </a>
         <a class="lesson-item locked" href="#">
-          <span class="lesson-dot" data-lesson="gpt-01">9</span>
+          <span class="lesson-dot" data-lesson="gpt-01">8</span>
           GPT Driver (Timer)
           <span class="tags"><span class="tag coming">Sắp ra</span></span>
         </a>
@@ -484,12 +471,12 @@
 (function () {
   const COURSE_KEY = 'mcal_progress';
   const ALL_LESSONS = [
-    'mcu-01-clock-tree','mcu-02-pll','mcu-03-mcal-api',
+    'mcu-rcc-stm32f411','mcu-driver-mcal',
     'com-01-spi','com-02-i2c','com-03-uart',
     'adc-01','pwm-01','gpt-01'
   ];
   const MOD_LESSONS = [
-    ['mcu-01-clock-tree','mcu-02-pll','mcu-03-mcal-api'],
+    ['mcu-rcc-stm32f411','mcu-driver-mcal'],
     ['com-01-spi','com-02-i2c','com-03-uart'],
     ['adc-01','pwm-01','gpt-01']
   ];

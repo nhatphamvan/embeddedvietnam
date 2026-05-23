@@ -1,0 +1,2299 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCU Driver — MCAL | STM32F4 &amp; STM32F1 | AUTOSAR CP R25-11</title>
+<meta name="description" content="Tài liệu MCU Driver MCAL theo AUTOSAR CP R25-11 cho STM32F4 và STM32F1 - dành cho kỹ sư embedded automotive.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800;9..144,900&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #fbfbf9;
+    --bg-elevated: #f1f0eb;
+    --bg-card: #ffffff;
+    --ink: #0f1a23;
+    --ink-dim: #4a5765;
+    --ink-faint: #8e9aa6;
+    --accent: #1e4d6b;        /* steel blue — automotive datasheet */
+    --accent-deep: #143548;
+    --accent-soft: #e8eef3;
+    --warn: #b8410a;
+    --warn-soft: #fdf0e8;
+    --info: #2c6e49;
+    --info-soft: #e8f1ec;
+    --spec-color: #5a4a3a;
+    --spec-soft: #f2eee7;
+    --grid: rgba(15, 26, 35, 0.04);
+    --border: rgba(15, 26, 35, 0.1);
+    --border-strong: rgba(15, 26, 35, 0.2);
+    --chip-f4: #c2410c;       /* STM32F4 — orange */
+    --chip-f1: #1e6091;       /* STM32F1 — blue */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 400;
+    line-height: 1.65;
+    font-size: 16px;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  }
+
+  /* Paper noise */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+    pointer-events: none;
+    opacity: 0.025;
+    z-index: 1;
+    mix-blend-mode: multiply;
+  }
+
+  main, header, footer { position: relative; z-index: 2; }
+
+  /* ---------- TOP BAR ---------- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(251, 251, 249, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  .brand { color: var(--accent); font-weight: 700; text-transform: uppercase; }
+  .topbar-meta { color: var(--ink-dim); display: flex; gap: 24px; align-items: center; }
+  .topbar-meta span::before { content: '// '; color: var(--ink-faint); }
+  .asil {
+    background: var(--accent);
+    color: white;
+    padding: 3px 10px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+  }
+  .asil::before { content: '' !important; }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 80px 32px 60px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .hero-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .hero-tag::before { content: ''; width: 32px; height: 1px; background: var(--accent); }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 900;
+    font-size: clamp(48px, 7.5vw, 104px);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    margin-bottom: 24px;
+    font-variation-settings: 'opsz' 144;
+    color: var(--ink);
+  }
+  h1 em { font-style: italic; font-weight: 400; color: var(--accent); }
+
+  .hero-sub {
+    font-size: 20px;
+    color: var(--ink-dim);
+    max-width: 760px;
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 48px;
+  }
+  .chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border: 1px solid currentColor;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chip.f4 { color: var(--chip-f4); }
+  .chip.f1 { color: var(--chip-f1); }
+  .chip::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: currentColor;
+    border-radius: 50%;
+  }
+
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 32px;
+    padding-top: 32px;
+    border-top: 1px dashed var(--border);
+  }
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .stat-value em { color: var(--accent); font-style: normal; }
+
+  /* ---------- TOC ---------- */
+  .toc {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 60px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toc-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .toc ol {
+    list-style: none;
+    counter-reset: toc;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 8px;
+  }
+  .toc li {
+    counter-increment: toc;
+    border-top: 1px solid var(--border);
+    padding: 16px 0;
+    transition: all 0.2s;
+  }
+  .toc li:hover { border-top-color: var(--accent); }
+  .toc a {
+    color: var(--ink);
+    text-decoration: none;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    font-size: 16px;
+  }
+  .toc a::before {
+    content: '0' counter(toc);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    flex-shrink: 0;
+  }
+  .toc a:hover { color: var(--accent); }
+
+  /* ---------- CONTENT ---------- */
+  .content { max-width: 1320px; margin: 0 auto; padding: 60px 32px 120px; }
+
+  section.chapter {
+    padding: 80px 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 60px;
+  }
+  section.chapter:last-of-type { border-bottom: none; }
+
+  .ch-meta {
+    position: sticky;
+    top: 80px;
+    align-self: start;
+    height: max-content;
+  }
+  .ch-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    margin-bottom: 12px;
+  }
+  .ch-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .ch-body { min-width: 0; }
+
+  h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 800;
+    font-size: clamp(32px, 4vw, 52px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 32px;
+    font-variation-settings: 'opsz' 96;
+    color: var(--ink);
+  }
+  h2 em { color: var(--accent); font-style: italic; font-weight: 400; }
+
+  h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 24px;
+    margin: 40px 0 16px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin: 28px 0 12px;
+  }
+
+  p { margin-bottom: 18px; color: var(--ink); }
+  p + p { margin-top: -4px; }
+
+  strong { color: var(--accent); font-weight: 600; }
+  em { color: var(--info); font-style: italic; }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88em;
+    background: var(--bg-elevated);
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    color: var(--accent);
+  }
+
+  /* ---------- CALLOUTS ---------- */
+  .note, .tip, .spec {
+    padding: 20px 24px;
+    margin: 24px 0;
+    font-size: 15px;
+    position: relative;
+    border-left: 3px solid;
+  }
+  .note {
+    background: var(--warn-soft);
+    border-left-color: var(--warn);
+  }
+  .note::before {
+    content: '⚠ TRAP';
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: var(--bg);
+    color: var(--warn);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    padding: 2px 8px;
+    border: 1px solid var(--warn);
+  }
+  .tip {
+    background: var(--info-soft);
+    border-left-color: var(--info);
+  }
+  .tip::before {
+    content: '◆ TIP';
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: var(--bg);
+    color: var(--info);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    padding: 2px 8px;
+    border: 1px solid var(--info);
+  }
+  .spec {
+    background: var(--spec-soft);
+    border-left-color: var(--spec-color);
+  }
+  .spec::before {
+    content: '§ SPEC';
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: var(--bg);
+    color: var(--spec-color);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    padding: 2px 8px;
+    border: 1px solid var(--spec-color);
+  }
+
+  /* ---------- TABLES ---------- */
+  .table-wrap {
+    margin: 24px 0;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-faint);
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-strong);
+  }
+  tbody tr:hover { background: var(--accent-soft); }
+  td:first-child { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+
+  /* Comparison table — F1 vs F4 */
+  table.compare td.f1 { color: var(--chip-f1); font-family: 'JetBrains Mono', monospace; }
+  table.compare td.f4 { color: var(--chip-f4); font-family: 'JetBrains Mono', monospace; }
+  table.compare td:first-child { color: var(--ink); font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; }
+
+  /* ---------- CODE BLOCKS ---------- */
+  pre {
+    background: #0c1820;
+    color: #e8edf1;
+    border: 1px solid var(--ink);
+    border-left: 3px solid var(--accent);
+    padding: 24px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    position: relative;
+  }
+  pre::before {
+    content: attr(data-lang);
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 10px;
+    color: #8e9aa6;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  pre code { background: none; border: none; padding: 0; color: #e8edf1; font-size: inherit; }
+
+  .k { color: #ff8aa7; }       /* keyword */
+  .s { color: #6cc4e8; }       /* string */
+  .c { color: #6a7480; font-style: italic; } /* comment */
+  .n { color: #d4a574; }       /* number */
+  .f { color: #f5d36c; }       /* function */
+  .t { color: #a3d977; }       /* type */
+
+  /* ---------- LISTS ---------- */
+  ul.bullets, ol.steps { margin: 16px 0; padding-left: 0; list-style: none; }
+  ul.bullets li, ol.steps li {
+    position: relative;
+    padding-left: 28px;
+    margin-bottom: 12px;
+    line-height: 1.6;
+  }
+  ul.bullets li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-size: 14px;
+    top: 2px;
+  }
+  ol.steps { counter-reset: step; }
+  ol.steps li { counter-increment: step; }
+  ol.steps li::before {
+    content: counter(step, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    top: 4px;
+    font-weight: 700;
+  }
+
+  /* ---------- KV GRID ---------- */
+  .kv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    margin: 24px 0;
+    border: 1px solid var(--border);
+  }
+  .kv-item { background: var(--bg-card); padding: 20px; }
+  .kv-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+  }
+  .kv-value {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .kv-desc { font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+
+  /* ---------- API CARD ---------- */
+  .api-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    margin: 24px 0;
+    overflow: hidden;
+  }
+  .api-card-header {
+    background: var(--bg-elevated);
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .api-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    font-weight: 700;
+    background: var(--accent-soft);
+    padding: 4px 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .api-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .api-card-body { padding: 24px; }
+  .api-card-body h5 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--ink-faint);
+    margin: 16px 0 8px;
+    font-weight: 500;
+  }
+  .api-card-body h5:first-child { margin-top: 0; }
+  .api-card-body pre { margin: 8px 0; }
+
+  /* ---------- PILLS ---------- */
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    background: var(--bg-elevated);
+    color: var(--ink-dim);
+    border: 1px solid var(--border);
+  }
+  .pill.on { background: var(--accent); color: white; border-color: var(--accent); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+  .pill.info { background: var(--info-soft); color: var(--info); border-color: var(--info); }
+  .pill.f4 { background: var(--chip-f4); color: white; border-color: var(--chip-f4); }
+  .pill.f1 { background: var(--chip-f1); color: white; border-color: var(--chip-f1); }
+
+  /* ---------- CASE ---------- */
+  .case {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 28px 32px;
+    margin: 28px 0;
+  }
+  .case-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 8px;
+    padding-bottom: 16px;
+    border-bottom: 1px dashed var(--border);
+    flex-wrap: wrap;
+  }
+  .case-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    font-weight: 700;
+  }
+  .case-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .case-body { margin-top: 16px; }
+  .case-body h4 { margin-top: 18px; }
+  .case-body h4:first-child { margin-top: 0; }
+
+  /* ---------- DEP GRAPH ---------- */
+  .dep-graph {
+    background: #0c1820;
+    color: #e8edf1;
+    border: 1px solid var(--ink);
+    padding: 28px;
+    margin: 24px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .dep-graph .hi { color: #f5d36c; font-weight: 700; }
+  .dep-graph .dim { color: #6a7480; }
+  .dep-graph .acc { color: #6cc4e8; }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 60px 32px 80px;
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+  .footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 32px;
+  }
+  .footer-brand {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 0.9;
+    color: var(--ink);
+  }
+  .footer-brand em { color: var(--accent); font-style: italic; }
+  .footer-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+    text-align: right;
+  }
+  .footer-meta div { margin-bottom: 4px; }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 900px) {
+    section.chapter {
+      grid-template-columns: 1fr;
+      gap: 24px;
+      padding: 56px 0;
+    }
+    .ch-meta { position: static; }
+    .hero { padding: 48px 24px 40px; }
+    .content { padding: 32px 24px 80px; }
+    .topbar-inner { padding: 12px 24px; flex-wrap: wrap; gap: 8px; }
+    .topbar-meta { display: none; }
+    .toc { padding: 40px 24px; }
+    footer { padding: 40px 24px 60px; }
+    .case { padding: 22px 20px; }
+    .api-card-body { padding: 20px; }
+  }
+
+  /* ---------- ANIMATIONS ---------- */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hero > * { animation: fadeUp 0.8s ease-out backwards; }
+  .hero-tag { animation-delay: 0.1s; }
+  h1 { animation-delay: 0.2s; }
+  .hero-sub { animation-delay: 0.3s; }
+  .chip-row { animation-delay: 0.4s; }
+  .hero-stats { animation-delay: 0.5s; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">MCU.MCAL / SWS-REF</div>
+    <div class="topbar-meta">
+      <span>AUTOSAR CP R25-11</span>
+      <span>STM32F4 + F1</span>
+      <span class="asil">QM</span>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-tag">MCAL Driver · MCU Module · Classic Platform</div>
+  <h1><em>MCU Driver</em><br>cho STM32F4 &amp; F1</h1>
+  <p class="hero-sub">
+    Tài liệu MCU Driver theo chuẩn AUTOSAR Classic Platform R25-11, áp dụng cho hai dòng vi điều khiển
+    STMicroelectronics — STM32F4 (Cortex-M4) và STM32F1 (Cortex-M3). Tập trung vào API spec, configuration,
+    integration với BSW stack và những khác biệt phần cứng giữa hai dòng MCU.
+  </p>
+
+  <div class="chip-row">
+    <span class="chip f4">STM32F4xx · Cortex-M4F · up to 180 MHz</span>
+    <span class="chip f1">STM32F1xx · Cortex-M3 · up to 72 MHz</span>
+  </div>
+
+  <div class="hero-stats">
+    <div>
+      <div class="stat-label">Service IDs</div>
+      <div class="stat-value"><em>11</em></div>
+    </div>
+    <div>
+      <div class="stat-label">DET errors</div>
+      <div class="stat-value"><em>8</em></div>
+    </div>
+    <div>
+      <div class="stat-label">Config variants</div>
+      <div class="stat-value"><em>PC / LT / PB</em></div>
+    </div>
+    <div>
+      <div class="stat-label">Module ID</div>
+      <div class="stat-value"><em>101</em></div>
+    </div>
+  </div>
+</header>
+
+<!-- TOC -->
+<nav class="toc">
+  <div class="toc-title">Mục lục // contents</div>
+  <ol>
+    <li><a href="#overview">Tổng quan MCU Driver trong BSW</a></li>
+    <li><a href="#concepts">Khái niệm cốt lõi</a></li>
+    <li><a href="#config">Configuration concept</a></li>
+    <li><a href="#api">API Service Interface</a></li>
+    <li><a href="#det">DET / DEM Errors</a></li>
+    <li><a href="#usecases">Use case tích hợp thực tế</a></li>
+    <li><a href="#init">Init order &amp; Dependency</a></li>
+    <li><a href="#memory">Memory &amp; Performance</a></li>
+    <li><a href="#params">Configuration parameters</a></li>
+    <li><a href="#integration">Integration với upper layer</a></li>
+    <li><a href="#hw-diff">Khác biệt STM32F4 vs STM32F1</a></li>
+    <li><a href="#debug">Checklist debug &amp; tích hợp</a></li>
+    <li><a href="#compliance">Compliance &amp; Reference</a></li>
+  </ol>
+</nav>
+
+<main class="content">
+
+<!-- CH 01 — OVERVIEW -->
+<section class="chapter" id="overview">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 01</div>
+    <div class="ch-tag">BSW Architecture</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Tổng quan <em>MCU Driver</em> trong BSW</h2>
+    <p>
+      MCU Driver là một trong những module MCAL nền tảng nhất trong AUTOSAR Classic Platform.
+      Theo SWS, module này cung cấp các service cho khởi tạo vi điều khiển cơ bản, quản lý power-down,
+      reset, và các chức năng đặc thù MCU mà các MCAL driver khác cần dùng.
+    </p>
+
+    <h3>Vị trí trong layered architecture</h3>
+    <p>
+      MCU Driver nằm ở tầng <strong>Microcontroller Abstraction Layer (MCAL)</strong>, ngay sát hardware.
+      Nó được truy cập trực tiếp bởi tầng <strong>Service Layer</strong> — đặc biệt là module
+      <code>EcuM</code> (ECU State Manager) trong quá trình startup, và bởi <code>BswM</code>
+      khi cần chuyển mode hoạt động.
+    </p>
+
+    <div class="dep-graph"><span class="dim">┌─────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>  <span class="hi">Application Layer (SWC)</span>                       <span class="dim">│</span>
+<span class="dim">├─────────────────────────────────────────────────┤</span>
+<span class="dim">│</span>  <span class="acc">RTE — Runtime Environment</span>                     <span class="dim">│</span>
+<span class="dim">├─────────────────────────────────────────────────┤</span>
+<span class="dim">│</span>  <span class="acc">Service Layer:</span>  EcuM  ◄──┐                    <span class="dim">│</span>
+<span class="dim">│</span>                  BswM  ◄──┤  calls Mcu_*()     <span class="dim">│</span>
+<span class="dim">├──────────────────────────│──────────────────────┤</span>
+<span class="dim">│</span>  ECU Abstraction Layer   │                      <span class="dim">│</span>
+<span class="dim">├──────────────────────────│──────────────────────┤</span>
+<span class="dim">│</span>  <span class="hi">MCAL:</span>  <span class="hi">Mcu Driver</span> ◄────────┘                     <span class="dim">│</span>
+<span class="dim">│</span>         Port · Dio · Gpt · Spi · Can · Adc      <span class="dim">│</span>
+<span class="dim">├─────────────────────────────────────────────────┤</span>
+<span class="dim">│</span>  Hardware: STM32F4 / STM32F1                    <span class="dim">│</span>
+<span class="dim">└─────────────────────────────────────────────────┘</span></div>
+
+    <h3>Chức năng chính</h3>
+    <ul class="bullets">
+      <li><strong>Initialization services</strong> — cấu hình clock tree, RAM sections, modes hoạt động của MCU.</li>
+      <li><strong>Power-down support</strong> — chuyển MCU vào các low-power mode (Sleep / Stop / Standby).</li>
+      <li><strong>Reset handling</strong> — đọc reset reason và thực hiện software reset.</li>
+      <li><strong>PLL management</strong> — start PLL, phân phối PLL clock tới hệ thống bus, kiểm tra trạng thái lock.</li>
+    </ul>
+
+    <h3>Ranh giới với startup code</h3>
+    <p>
+      Theo SWS, một số việc <strong>không thuộc</strong> MCU Driver mà phải làm trong start-up code (rất MCU-specific):
+    </p>
+    <ul class="bullets">
+      <li>Khởi tạo base address cho interrupt và trap vector table.</li>
+      <li>Khởi tạo user stack pointer.</li>
+      <li>Khởi tạo external memory (nếu có).</li>
+      <li>Đọc trạng thái cấp nguồn ECU/µC — đây là trách nhiệm của upper layer (EcuM/Hardware abstraction), không phải MCU Driver.</li>
+    </ul>
+
+    <div class="spec">
+      Theo <strong>SWS_Mcu</strong> R25-11: "The MCU driver provides services for basic microcontroller
+      initialization, power down functionality, reset and microcontroller specific functions required
+      by other MCAL software modules." MCU Driver <em>không</em> chịu trách nhiệm bật/tắt nguồn cho ECU
+      hay vi điều khiển — đó là việc của upper layer.
+    </div>
+
+    <div class="tip">
+      <strong>Mô hình tư duy đơn giản:</strong> Nếu bạn quen với HAL/CMSIS trên STM32, MCU Driver trong AUTOSAR
+      chính là "RCC + PWR + một phần SCB" được bọc lại theo chuẩn AUTOSAR API. Mọi thứ trong RCC (clock setup,
+      PLL config) và PWR (low-power mode) đều phải route qua MCU Driver thay vì code thẳng vào register.
+    </div>
+  </div>
+</section>
+
+<!-- CH 02 — CONCEPTS -->
+<section class="chapter" id="concepts">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 02</div>
+    <div class="ch-tag">Core concepts</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Khái niệm <em>cốt lõi</em> của module</h2>
+
+    <h3>Các kiểu dữ liệu quan trọng</h3>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Type</th><th>Vai trò</th><th>Phạm vi giá trị</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Mcu_ConfigType</td>
+            <td>Cấu trúc cấu hình tổng — truyền vào Mcu_Init</td>
+            <td>Implementation-specific (struct chứa toàn bộ config)</td>
+          </tr>
+          <tr>
+            <td>Mcu_ClockType</td>
+            <td>ID của clock setting — truyền vào Mcu_InitClock</td>
+            <td>uint8/uint16, 0..255 (theo McuClockSettingId)</td>
+          </tr>
+          <tr>
+            <td>Mcu_RamSectionType</td>
+            <td>ID của RAM section — truyền vào Mcu_InitRamSection</td>
+            <td>uint8/uint16</td>
+          </tr>
+          <tr>
+            <td>Mcu_ModeType</td>
+            <td>ID của MCU mode — truyền vào Mcu_SetMode</td>
+            <td>uint8/uint16</td>
+          </tr>
+          <tr>
+            <td>Mcu_PllStatusType</td>
+            <td>Trạng thái PLL trả về từ Mcu_GetPllStatus</td>
+            <td>MCU_PLL_LOCKED / MCU_PLL_UNLOCKED / MCU_PLL_STATUS_UNDEFINED</td>
+          </tr>
+          <tr>
+            <td>Mcu_ResetType</td>
+            <td>Loại reset trả về từ Mcu_GetResetReason</td>
+            <td>MCU_POWER_ON_RESET / MCU_WATCHDOG_RESET / MCU_SW_RESET / MCU_RESET_UNDEFINED</td>
+          </tr>
+          <tr>
+            <td>Mcu_RawResetType</td>
+            <td>Giá trị raw reset từ hardware register</td>
+            <td>uint8/uint16/uint32 (HW-dependent)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Mô hình clock setting</h3>
+    <p>
+      MCU Driver dùng khái niệm <strong>"clock setting"</strong> như một preset cấu hình clock hoàn chỉnh.
+      Mỗi clock setting có ID duy nhất (<code>McuClockSettingId</code>) và chứa toàn bộ tham số PLL, prescaler,
+      clock source... cần thiết để đưa MCU đến một cấu hình clock cụ thể.
+    </p>
+    <p>
+      Trong tool (EB tresos / DaVinci), bạn định nghĩa N clock setting (ví dụ: "100MHz_HSE", "16MHz_HSI_LowPower"...).
+      Lúc runtime, gọi <code>Mcu_InitClock(0)</code> để áp setting 0, <code>Mcu_InitClock(1)</code> để áp setting 1.
+      Điều này cho phép <strong>dynamic frequency scaling</strong> mà không cần đụng tới register.
+    </p>
+
+    <h3>Mô hình MCU mode</h3>
+    <p>
+      MCU mode là các trạng thái hoạt động khác nhau của vi điều khiển — chủ yếu liên quan đến low-power.
+      Mode điển hình:
+    </p>
+    <ul class="bullets">
+      <li><strong>RUN</strong> — chế độ hoạt động bình thường, CPU và clock chính ON.</li>
+      <li><strong>SLEEP</strong> — CPU dừng, peripheral clock có thể vẫn chạy (WFI/WFE).</li>
+      <li><strong>STOP</strong> — hầu hết clock dừng, chỉ LSI/LSE còn chạy.</li>
+      <li><strong>STANDBY</strong> — toàn bộ digital off trừ backup domain.</li>
+    </ul>
+    <p>
+      Mỗi mode có ID riêng định nghĩa trong container <code>McuModeSettingConf</code> và áp dụng qua
+      <code>Mcu_SetMode(modeId)</code>.
+    </p>
+
+    <div class="spec">
+      <strong>SWS_Mcu_00126:</strong> Hàm <code>Mcu_Init</code> luôn nhận pointer đến config struct,
+      kể cả với VARIANT-PRE-COMPILE (khi không cần config set). Trong PC variant, pass <code>NULL_PTR</code>.
+      Đây là quy tắc bất khả kháng — đừng thay đổi prototype của Mcu_Init.
+    </div>
+  </div>
+</section>
+
+<!-- CH 03 — CONFIG -->
+<section class="chapter" id="config">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 03</div>
+    <div class="ch-tag">Configuration</div>
+  </aside>
+  <div class="ch-body">
+    <h2><em>Configuration</em> concept</h2>
+
+    <h3>Container structure (theo SWS R25-11)</h3>
+    <p>
+      Container của MCU Driver được tổ chức theo cây phân cấp. Đây là cấu trúc chuẩn — mọi tool AUTOSAR
+      (EB tresos, Vector DaVinci, Mentor VSx) đều phải tuân theo.
+    </p>
+
+    <div class="dep-graph"><span class="hi">Mcu</span>  <span class="dim">(top-level module)</span>
+├── <span class="acc">McuGeneralConfiguration</span>     <span class="dim">— General settings (DET, version info...)</span>
+│   ├── McuDevErrorDetect       <span class="dim">: bool</span>
+│   ├── McuVersionInfoApi       <span class="dim">: bool</span>
+│   ├── McuGetRamStateApi       <span class="dim">: bool</span>
+│   ├── McuPerformResetApi      <span class="dim">: bool</span>
+│   ├── McuInitClock            <span class="dim">: bool — enable Mcu_InitClock()</span>
+│   ├── McuNoPll                <span class="dim">: bool — disable Mcu_DistributePllClock()</span>
+│   └── McuTimeoutDuration      <span class="dim">: float — for PLL lock timeout</span>
+│
+└── <span class="acc">McuModuleConfiguration</span>      <span class="dim">— Main config set (1..*)</span>
+    ├── <span class="acc">McuClockSettingConfig</span>   <span class="dim">— Clock presets (1..*)</span>
+    │   ├── McuClockSettingId  <span class="dim">: 0..255</span>
+    │   ├── McuClockReferencePoint  <span class="dim">(1..*)</span>
+    │   │   ├── McuClockReferencePointFrequency
+    │   │   └── ...                <span class="dim">(MCU-specific: PLL M/N/P/Q, prescalers...)</span>
+    │   └── ...
+    │
+    ├── <span class="acc">McuModeSettingConf</span>      <span class="dim">— MCU modes (1..*)</span>
+    │   └── McuMode             <span class="dim">: ID for each mode</span>
+    │
+    ├── <span class="acc">McuRamSectorSettingConf</span> <span class="dim">— RAM init sections (0..*)</span>
+    │   ├── McuRamSectionBaseAddress
+    │   ├── McuRamSectionSize
+    │   ├── McuRamDefaultValue
+    │   └── McuRamSectionWriteSize
+    │
+    └── <span class="acc">McuPartitionConfig</span>      <span class="dim">— Multi-partition (advanced)</span></div>
+
+    <h3>Configuration variants</h3>
+    <p>
+      AUTOSAR định nghĩa 3 variant về thời điểm cấu hình được fix. MCU Driver hỗ trợ tất cả nhưng
+      thực tế trên STM32F4/F1 thường dùng <strong>Pre-compile</strong> là chính.
+    </p>
+
+    <div class="kv-grid">
+      <div class="kv-item">
+        <div class="kv-label">VARIANT-PRE-COMPILE</div>
+        <div class="kv-value">PC</div>
+        <div class="kv-desc">Config fix tại compile time. Generated code chứa hard-coded values. <strong>Mcu_Init nhận NULL_PTR.</strong> Phù hợp 90% project STM32.</div>
+      </div>
+      <div class="kv-item">
+        <div class="kv-label">VARIANT-LINK-TIME</div>
+        <div class="kv-value">LT</div>
+        <div class="kv-desc">Config fix lúc link. Cho phép có nhiều cấu hình trong cùng object file. Ít dùng trên STM32.</div>
+      </div>
+      <div class="kv-item">
+        <div class="kv-label">VARIANT-POST-BUILD</div>
+        <div class="kv-value">PB</div>
+        <div class="kv-desc">Config thay đổi sau khi flash (qua reflash partition). Dùng khi cùng firmware chạy trên nhiều variant ECU.</div>
+      </div>
+    </div>
+
+    <h3>File structure sau khi generate</h3>
+    <p>
+      Tool generator (tresos, DaVinci) tạo ra các file sau từ file <code>.arxml</code> bạn config:
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>File</th><th>Nội dung</th><th>Khi nào tạo</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Mcu_Cfg.h</td><td>Macro pre-compile (#define MCU_DEV_ERROR_DETECT...)</td><td>Mọi variant</td></tr>
+          <tr><td>Mcu_Cfg.c</td><td>Hard-coded config (chỉ PC variant)</td><td>VARIANT-PRE-COMPILE</td></tr>
+          <tr><td>Mcu_Lcfg.c</td><td>Link-time config struct</td><td>VARIANT-LINK-TIME</td></tr>
+          <tr><td>Mcu_PBcfg.c</td><td>Post-build config struct</td><td>VARIANT-POST-BUILD</td></tr>
+          <tr><td>Mcu.h</td><td>Public API declaration — KHÔNG được edit</td><td>Source code (vendor)</td></tr>
+          <tr><td>Mcu.c</td><td>Implementation — KHÔNG được edit</td><td>Source code (vendor)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      Tuyệt đối <strong>không sửa file đã generate</strong>. Mỗi lần đổi config trong tresos rồi
+      regenerate, mọi sửa tay sẽ bị overwrite. Nếu cần custom behavior, dùng cơ chế callout/notification
+      hoặc tạo wrapper riêng — không bao giờ patch Mcu_Cfg.c trực tiếp.
+    </div>
+  </div>
+</section>
+
+<!-- CH 04 — API -->
+<section class="chapter" id="api">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 04</div>
+    <div class="ch-tag">Service interface</div>
+  </aside>
+  <div class="ch-body">
+    <h2>API <em>Service Interface</em></h2>
+    <p>
+      Theo SWS R25-11, MCU Driver expose 11 service chính. Mỗi service có Service ID cố định
+      (dùng cho DET error reporting). Tên service ID hex thường dùng trong implementation:
+    </p>
+
+    <!-- API: Mcu_Init -->
+    <div class="api-card">
+      <div class="api-card-header">
+        <span class="api-id">SID 0x00</span>
+        <span class="api-name">Mcu_Init</span>
+      </div>
+      <div class="api-card-body">
+        <div class="pill-row">
+          <span class="pill on">Synchronous</span>
+          <span class="pill on">Non Reentrant</span>
+          <span class="pill info">Standard</span>
+        </div>
+        <h5>Prototype</h5>
+<pre data-lang="C"><span class="k">void</span> <span class="f">Mcu_Init</span>(<span class="k">const</span> Mcu_ConfigType* ConfigPtr);</pre>
+        <h5>Mô tả</h5>
+        <p>
+          Khởi tạo MCU Driver. Đây là service <strong>đầu tiên</strong> phải gọi trước mọi service khác.
+          Trong VARIANT-PRE-COMPILE, pass <code>NULL_PTR</code> theo <strong>SWS_Mcu_00126</strong>.
+        </p>
+        <h5>Khi nào gọi</h5>
+        <p>
+          EcuM gọi rất sớm trong startup sequence, ngay sau khi start-up code hoàn tất (vector table,
+          stack pointer, external memory init). Trên STM32, gọi ngay sau khi exit từ Reset_Handler
+          và trước Port_Init.
+        </p>
+        <h5>Constraints</h5>
+        <ul class="bullets">
+          <li>Không gọi lại nếu MCU đã được init (gây <code>MCU_E_ALREADY_INITIALIZED</code> nếu DET on).</li>
+          <li>Không gọi từ ISR.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- API: Mcu_InitRamSection -->
+    <div class="api-card">
+      <div class="api-card-header">
+        <span class="api-id">SID 0x01</span>
+        <span class="api-name">Mcu_InitRamSection</span>
+      </div>
+      <div class="api-card-body">
+        <div class="pill-row">
+          <span class="pill on">Synchronous</span>
+          <span class="pill on">Non Reentrant</span>
+          <span class="pill info">Standard</span>
+        </div>
+        <h5>Prototype</h5>
+<pre data-lang="C"><span class="t">Std_ReturnType</span> <span class="f">Mcu_InitRamSection</span>(<span class="t">Mcu_RamSectionType</span> RamSection);</pre>
+        <h5>Mô tả</h5>
+        <p>
+          Fill một vùng RAM với giá trị mặc định, theo cấu hình trong <code>McuRamSectorSettingConf</code>.
+          Theo <strong>SWS_Mcu_00011</strong>, ghi từ <code>McuRamSectionBaseAddress</code> đến
+          <code>+ McuRamSectionSize - 1</code> với <code>McuRamDefaultValue</code>, mỗi lần ghi
+          <code>McuRamSectionWriteSize</code> byte.
+        </p>
+        <h5>Khi nào gọi</h5>
+        <p>
+          Sau <code>Mcu_Init</code> (<strong>SWS_Mcu_00136</strong>). Dùng để clear RAM trước khi sử dụng —
+          tránh side-effect từ memory bị nhiễu (ECC, soft error). Trên STM32, ít dùng vì RAM tích hợp
+          không có ECC và start-up code thường đã zero-init .bss.
+        </p>
+      </div>
+    </div>
+
+    <!-- API: Mcu_InitClock -->
+    <div class="api-card">
+      <div class="api-card-header">
+        <span class="api-id">SID 0x02</span>
+        <span class="api-name">Mcu_InitClock</span>
+      </div>
+      <div class="api-card-body">
+        <div class="pill-row">
+          <span class="pill on">Synchronous</span>
+          <span class="pill on">Non Reentrant</span>
+          <span class="pill info">Standard</span>
+        </div>
+        <h5>Prototype</h5>
+<pre data-lang="C"><span class="t">Std_ReturnType</span> <span class="f">Mcu_InitClock</span>(<span class="t">Mcu_ClockType</span> ClockSetting);</pre>
+        <h5>Mô tả</h5>
+        <p>
+          Khởi tạo PLL và các clock option đặc thù của MCU theo <code>ClockSetting</code> (ID đã định nghĩa
+          trong <code>McuClockSettingConfig</code>). Theo <strong>SWS_Mcu_00137</strong>, function khởi tạo
+          PLL và các MCU-specific clock option; theo <strong>SWS_Mcu_00138</strong>, function bắt đầu quá trình
+          PLL lock.
+        </p>
+        <h5>Constraints</h5>
+        <ul class="bullets">
+          <li>Chỉ available khi <code>McuInitClock = TRUE</code> trong config (theo <strong>SWS_Mcu_00210</strong>).</li>
+          <li>Hàm này <em>khởi động</em> PLL nhưng không chờ lock — phải gọi <code>Mcu_GetPllStatus</code> để kiểm tra.</li>
+          <li>Trước khi switch SYSCLK sang PLL, phải gọi <code>Mcu_DistributePllClock</code>.</li>
+        </ul>
+        <h5>Trên STM32F4/F1</h5>
+        <p>
+          Implementation thường wrap quanh RCC: ghi PLLCFGR (F4) hoặc CFGR (F1), bật PLLON, set
+          flash latency, set bus prescalers. Chi tiết khác biệt xem chương 11.
+        </p>
+      </div>
+    </div>
+
+    <!-- API: Mcu_DistributePllClock -->
+    <div class="api-card">
+      <div class="api-card-header">
+        <span class="api-id">SID 0x03</span>
+        <span class="api-name">Mcu_DistributePllClock</span>
+      </div>
+      <div class="api-card-body">
+        <div class="pill-row">
+          <span class="pill on">Synchronous</span>
+          <span class="pill on">Non Reentrant</span>
+          <span class="pill info">Standard</span>
+        </div>
+        <h5>Prototype</h5>
+<pre data-lang="C"><span class="t">Std_ReturnType</span> <span class="f">Mcu_DistributePllClock</span>(<span class="k">void</span>);</pre>
+        <h5>Mô tả</h5>
+        <p>
+          Kích hoạt phân phối PLL clock lên hệ thống bus của MCU — tức là switch SYSCLK từ HSI/HSE
+          sang PLLCLK. Phải gọi <em>sau khi</em> Mcu_GetPllStatus trả về <code>MCU_PLL_LOCKED</code>.
+        </p>
+        <h5>Constraints</h5>
+        <ul class="bullets">
+          <li>Service này không available nếu <code>McuNoPll = TRUE</code> (MCU không có PLL hoặc PLL tự lock không cần SW).</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- API: Mcu_GetPllStatus -->
+    <div class="api-card">
+      <div class="api-card-header">
+        <span class="api-id">SID 0x04</span>
+        <span class="api-name">Mcu_GetPllStatus</span>
+      </div>
+      <div class="api-card-body">
+        <div class="pill-row">
+          <span class="pill on">Synchronous</span>
+          <span class="pill on">Reentrant</span>
+          <span class="pill info">Standard</span>
+        </div>
+        <h5>Prototype</h5>
+<pre data-lang="C"><span class="t">Mcu_PllStatusType</span> <span class="f">Mcu_GetPllStatus</span>(<span class="k">void</span>);</pre>
+        <h5>Mô tả</h5>
+        <p>
+          Trả về trạng thái lock của PLL:
+          <code>MCU_PLL_LOCKED</code> / <code>MCU_PLL_UNLOCKED</code> / <code>MCU_PLL_STATUS_UNDEFINED</code>.
+          Upper layer (EcuM) thường polling hàm này trong vòng lặp với timeout.
+        </p>
+        <h5>Constraints</h5>
+        <ul class="bullets">
+          <li>Reentrant — có thể gọi từ multiple context (main + ISR).</li>
+          <li>Nếu <code>McuNoPll = TRUE</code>, trả về <code>MCU_PLL_STATUS_UNDEFINED</code>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- API: Mcu_GetResetReason -->
+    <div class="api-card">
+      <div class="api-card-header">
+        <span class="api-id">SID 0x05</span>
+        <span class="api-name">Mcu_GetResetReason</span>
+      </div>
+      <div class="api-card-body">
+        <div class="pill-row">
+          <span class="pill on">Synchronous</span>
+          <span class="pill on">Non Reentrant</span>
+          <span class="pill info">Standard</span>
+        </div>
+        <h5>Prototype</h5>
+<pre data-lang="C"><span class="t">Mcu_ResetType</span> <span class="f">Mcu_GetResetReason</span>(<span class="k">void</span>);</pre>
+        <h5>Mô tả</h5>
+        <p>
+          Trả về lý do reset gần nhất của MCU: <code>MCU_POWER_ON_RESET</code>, <code>MCU_WATCHDOG_RESET</code>,
+          <code>MCU_SW_RESET</code>, hoặc <code>MCU_RESET_UNDEFINED</code>. EcuM dùng giá trị này để
+          quyết định post-reset behavior (ví dụ: vào safe-mode nếu watchdog reset).
+        </p>
+        <h5>Khi nào gọi</h5>
+        <p>
+          Gọi rất sớm trong startup sequence, sau Mcu_Init. Phải clear reset flag sau khi đọc — nếu không,
+          lần reset sau sẽ thấy flag chồng chất.
+        </p>
+      </div>
+    </div>
+
+    <!-- API: Mcu_GetResetRawValue -->
+    <div class="api-card">
+      <div class="api-card-header">
+        <span class="api-id">SID 0x06</span>
+        <span class="api-name">Mcu_GetResetRawValue</span>
+      </div>
+      <div class="api-card-body">
+        <div class="pill-row">
+          <span class="pill on">Synchronous</span>
+          <span class="pill on">Non Reentrant</span>
+          <span class="pill info">Standard</span>
+        </div>
+        <h5>Prototype</h5>
+<pre data-lang="C"><span class="t">Mcu_RawResetType</span> <span class="f">Mcu_GetResetRawValue</span>(<span class="k">void</span>);</pre>
+        <h5>Mô tả</h5>
+        <p>
+          Trả về giá trị raw của reset status register (RCC_CSR trên STM32F4/F1). Dùng khi cần
+          chi tiết hơn so với <code>Mcu_GetResetReason</code> — ví dụ phân biệt IWDG vs WWDG reset
+          mà cả hai đều map vào MCU_WATCHDOG_RESET.
+        </p>
+      </div>
+    </div>
+
+    <!-- API: Mcu_PerformReset -->
+    <div class="api-card">
+      <div class="api-card-header">
+        <span class="api-id">SID 0x07</span>
+        <span class="api-name">Mcu_PerformReset</span>
+      </div>
+      <div class="api-card-body">
+        <div class="pill-row">
+          <span class="pill on">Synchronous</span>
+          <span class="pill on">Non Reentrant</span>
+          <span class="pill info">Standard</span>
+        </div>
+        <h5>Prototype</h5>
+<pre data-lang="C"><span class="k">void</span> <span class="f">Mcu_PerformReset</span>(<span class="k">void</span>);</pre>
+        <h5>Mô tả</h5>
+        <p>
+          Thực hiện software reset MCU. Trên STM32, implement bằng cách ghi <code>SCB-&gt;AIRCR</code>
+          với <code>SYSRESETREQ</code> bit. Function không return — MCU sẽ reset trước khi function trả về.
+        </p>
+        <h5>Constraints</h5>
+        <ul class="bullets">
+          <li>Chỉ available khi <code>McuPerformResetApi = TRUE</code>.</li>
+          <li>Phải flush mọi pending operation (Nvm write, Dem report...) trước khi gọi — nếu không sẽ mất dữ liệu.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- API: Mcu_SetMode -->
+    <div class="api-card">
+      <div class="api-card-header">
+        <span class="api-id">SID 0x08</span>
+        <span class="api-name">Mcu_SetMode</span>
+      </div>
+      <div class="api-card-body">
+        <div class="pill-row">
+          <span class="pill on">Synchronous</span>
+          <span class="pill on">Non Reentrant</span>
+          <span class="pill info">Standard</span>
+        </div>
+        <h5>Prototype</h5>
+<pre data-lang="C"><span class="k">void</span> <span class="f">Mcu_SetMode</span>(<span class="t">Mcu_ModeType</span> McuMode);</pre>
+        <h5>Mô tả</h5>
+        <p>
+          Chuyển MCU sang mode mới (RUN / SLEEP / STOP / STANDBY hoặc các mode custom).
+          Trên STM32 thường wrap quanh <code>__WFI()</code>, <code>__WFE()</code>, hoặc set bit
+          trong PWR_CR.
+        </p>
+        <h5>Constraints</h5>
+        <ul class="bullets">
+          <li>Mode ID phải tồn tại trong <code>McuModeSettingConf</code>, nếu không sẽ trigger <code>MCU_E_PARAM_MODE</code>.</li>
+          <li>Khi vào Stop/Standby, function "trở về" sau wakeup — phải lường trước flow control.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- API: Mcu_GetVersionInfo -->
+    <div class="api-card">
+      <div class="api-card-header">
+        <span class="api-id">SID 0x09</span>
+        <span class="api-name">Mcu_GetVersionInfo</span>
+      </div>
+      <div class="api-card-body">
+        <div class="pill-row">
+          <span class="pill on">Synchronous</span>
+          <span class="pill on">Reentrant</span>
+          <span class="pill info">Standard</span>
+        </div>
+        <h5>Prototype</h5>
+<pre data-lang="C"><span class="k">void</span> <span class="f">Mcu_GetVersionInfo</span>(<span class="t">Std_VersionInfoType</span>* versioninfo);</pre>
+        <h5>Mô tả</h5>
+        <p>
+          Điền vendor ID, module ID, software version vào struct. Dùng cho diagnostic và verification.
+          Chỉ available khi <code>McuVersionInfoApi = TRUE</code>.
+        </p>
+      </div>
+    </div>
+
+    <!-- API: Mcu_GetRamState -->
+    <div class="api-card">
+      <div class="api-card-header">
+        <span class="api-id">SID 0x0A</span>
+        <span class="api-name">Mcu_GetRamState</span>
+      </div>
+      <div class="api-card-body">
+        <div class="pill-row">
+          <span class="pill on">Synchronous</span>
+          <span class="pill on">Reentrant</span>
+          <span class="pill info">Standard</span>
+        </div>
+        <h5>Prototype</h5>
+<pre data-lang="C"><span class="t">Mcu_RamStateType</span> <span class="f">Mcu_GetRamState</span>(<span class="k">void</span>);</pre>
+        <h5>Mô tả</h5>
+        <p>
+          Trả về trạng thái của RAM (VALID / INVALID). Dùng cho MCU có hardware support cho RAM
+          integrity check (ECC, parity). Trên STM32F4/F1, hardware <strong>không hỗ trợ</strong> trực tiếp,
+          nên parameter này thường set <code>McuGetRamStateApi = FALSE</code> và service không available.
+        </p>
+        <h5>Constraints</h5>
+        <ul class="bullets">
+          <li>Chỉ available khi <code>McuGetRamStateApi = TRUE</code>.</li>
+          <li>Nếu HW không hỗ trợ, parameter phải FALSE — đừng implement fake.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tip">
+      <strong>Lưu ý về Service ID:</strong> các giá trị hex 0x00..0x0A là Service ID dùng trong DET reporting.
+      Khi DET hook nhận callout, đối số <code>ApiId</code> chính là các giá trị này. Implementation thường
+      define macro như <code>MCU_INIT_SERVICE_ID</code>, <code>MCU_INITCLOCK_SERVICE_ID</code>... trong file
+      internal header để code dễ đọc hơn.
+    </div>
+  </div>
+</section>
+
+<!-- CH 05 — DET / DEM -->
+<section class="chapter" id="det">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 05</div>
+    <div class="ch-tag">Error reporting</div>
+  </aside>
+  <div class="ch-body">
+    <h2><em>DET / DEM</em> Errors</h2>
+
+    <h3>Development Errors (DET)</h3>
+    <p>
+      DET errors là lỗi do bug trong code (sai parameter, sai trình tự gọi, gọi khi chưa init).
+      Chỉ được report khi <code>McuDevErrorDetect = TRUE</code> — production build thường tắt
+      để tiết kiệm code size.
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Error name</th><th>Mô tả</th><th>API trigger</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>MCU_E_PARAM_CONFIG</td>
+            <td>API service gọi với ConfigPtr không hợp lệ</td>
+            <td>Mcu_Init</td>
+          </tr>
+          <tr>
+            <td>MCU_E_PARAM_CLOCK</td>
+            <td>ClockSetting vượt ngoài range cấu hình</td>
+            <td>Mcu_InitClock</td>
+          </tr>
+          <tr>
+            <td>MCU_E_PARAM_MODE</td>
+            <td>McuMode không tồn tại trong McuModeSettingConf</td>
+            <td>Mcu_SetMode</td>
+          </tr>
+          <tr>
+            <td>MCU_E_PARAM_RAMSECTION</td>
+            <td>RamSection ID vượt range</td>
+            <td>Mcu_InitRamSection</td>
+          </tr>
+          <tr>
+            <td>MCU_E_PLL_NOT_LOCKED</td>
+            <td>Mcu_DistributePllClock gọi khi PLL chưa lock</td>
+            <td>Mcu_DistributePllClock</td>
+          </tr>
+          <tr>
+            <td>MCU_E_UNINIT</td>
+            <td>API gọi trước khi Mcu_Init</td>
+            <td>Mọi API trừ Mcu_Init</td>
+          </tr>
+          <tr>
+            <td>MCU_E_PARAM_POINTER</td>
+            <td>NULL pointer pass vào API cần pointer hợp lệ</td>
+            <td>Mcu_GetVersionInfo</td>
+          </tr>
+          <tr>
+            <td>MCU_E_INIT_FAILED</td>
+            <td>Mcu_Init thất bại do invalid config (extended)</td>
+            <td>Mcu_Init</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Production Errors (DEM)</h3>
+    <p>
+      Theo SWS R25-11, MCU Driver có một extended production error duy nhất:
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Event name</th><th>Trigger condition</th><th>Reference</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>MCU_E_CLOCK_FAILURE</td>
+            <td>Phát hiện clock source failure (HSE lost detection — CSS trigger trên STM32)</td>
+            <td>SWS_Mcu_00257, SWS_Mcu_00258</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec">
+      <strong>SWS_Mcu R25-11:</strong> "If the clock failure is detected with other HW mechanisms
+      e.g. the generation of a trap, this notification shall be disabled and the failure reporting
+      shall be done outside the MCU driver." Trên STM32, CSS trigger NMI — nếu bạn xử lý NMI handler
+      riêng để report lỗi, phải tắt <code>McuClockSrcFailureNotification</code> trong config để
+      tránh double report.
+    </div>
+
+    <h3>Cơ chế DET callout</h3>
+
+<pre data-lang="C — DET reporting pattern (Mcu.c implementation)"><span class="c">// Inside Mcu_InitClock implementation:</span>
+<span class="k">if</span> (ClockSetting &gt;= MCU_NUMBER_OF_CLOCK_SETTINGS) {
+<span class="cp">#if</span> (MCU_DEV_ERROR_DETECT == STD_ON)
+    (<span class="k">void</span>)<span class="f">Det_ReportError</span>(
+        MCU_MODULE_ID,                  <span class="c">// 101</span>
+        MCU_INSTANCE_ID,                <span class="c">// 0</span>
+        MCU_INITCLOCK_SERVICE_ID,       <span class="c">// 0x02</span>
+        MCU_E_PARAM_CLOCK               <span class="c">// error code</span>
+    );
+<span class="cp">#endif</span>
+    <span class="k">return</span> E_NOT_OK;
+}</pre>
+
+    <div class="tip">
+      <strong>Pattern catch DET sớm:</strong> Trong development build, implement <code>Det_ReportError</code>
+      breakpoint hoặc log để bắt mọi DET callout. Một DET error không bao giờ là "warning" — nó là bug
+      thực sự trong integration code. Fix ngay khi thấy, đừng đợi production fail.
+    </div>
+  </div>
+</section>
+
+<!-- CH 06 — USE CASES -->
+<section class="chapter" id="usecases">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 06</div>
+    <div class="ch-tag">Use cases</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Use case <em>tích hợp</em> thực tế</h2>
+
+    <!-- CASE 01 -->
+    <div class="case">
+      <div class="case-header">
+        <div class="case-id">CASE / 01</div>
+        <div class="case-title">Standard startup sequence — Body Control Module (BCM)</div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">Mcu_Init</span>
+        <span class="pill on">Mcu_InitClock</span>
+        <span class="pill on">Mcu_GetPllStatus</span>
+        <span class="pill on">Mcu_DistributePllClock</span>
+        <span class="pill f4">STM32F4 @ 168 MHz</span>
+      </div>
+      <div class="case-body">
+        <h4>Kịch bản</h4>
+        <p>
+          ECU điều khiển khoang xe (BCM): điều khiển đèn, kính, khóa cửa. Yêu cầu CPU 168 MHz (F4)
+          để chạy CAN, LIN, và stack diagnostic UDS. Startup phải hoàn tất dưới 100ms.
+        </p>
+        <h4>Call sequence trong EcuM</h4>
+<pre data-lang="C — EcuM_AL_DriverInitZero / InitOne"><span class="c">// Step 1: MCU init (vào sớm nhất trong InitZero)</span>
+<span class="f">Mcu_Init</span>(<span class="o">&amp;</span>Mcu_Config);   <span class="c">// hoặc NULL_PTR nếu PC variant</span>
+
+<span class="c">// Step 2: Init clock setting "168MHz_HSE"</span>
+<span class="k">if</span> (<span class="f">Mcu_InitClock</span>(<span class="n">0</span>) <span class="o">!=</span> E_OK) {
+    <span class="c">// fall back hoặc trigger fail-safe</span>
+}
+
+<span class="c">// Step 3: Poll PLL lock với timeout</span>
+<span class="t">uint32</span> timeout = MCU_PLL_LOCK_TIMEOUT;
+<span class="k">while</span> ((<span class="f">Mcu_GetPllStatus</span>() <span class="o">!=</span> MCU_PLL_LOCKED) <span class="o">&amp;&amp;</span> (timeout<span class="o">--</span>));
+
+<span class="k">if</span> (<span class="f">Mcu_GetPllStatus</span>() <span class="o">!=</span> MCU_PLL_LOCKED) {
+    <span class="c">// PLL lock failed → safe-state</span>
+}
+
+<span class="c">// Step 4: Distribute PLL clock to bus</span>
+(<span class="k">void</span>)<span class="f">Mcu_DistributePllClock</span>();
+
+<span class="c">// Step 5: Read reset reason for diagnostics</span>
+Mcu_ResetType reason = <span class="f">Mcu_GetResetReason</span>();
+<span class="k">if</span> (reason == MCU_WATCHDOG_RESET) {
+    <span class="c">// log to Dem, possibly enter safe-mode</span>
+    <span class="f">Dem_SetEventStatus</span>(DemConf_DemEventParameter_WDG_RESET, DEM_EVENT_STATUS_FAILED);
+}
+
+<span class="c">// Step 6: Now EcuM continues with Port_Init, Dio_Init, etc.</span></pre>
+        <h4>Bẫy thường gặp</h4>
+        <ul class="bullets">
+          <li>Quên <code>Mcu_DistributePllClock</code> → SYSCLK vẫn dùng HSI 16 MHz dù PLL đã lock. UART/CAN baudrate sai.</li>
+          <li>Timeout PLL lock quá ngắn → false-fail trên board lạnh (HSE startup chậm hơn ở -40°C).</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CASE 02 -->
+    <div class="case">
+      <div class="case-header">
+        <div class="case-id">CASE / 02</div>
+        <div class="case-title">Reset reason logging — Diagnostic ECU</div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">Mcu_GetResetReason</span>
+        <span class="pill on">Mcu_GetResetRawValue</span>
+        <span class="pill on">Dem integration</span>
+      </div>
+      <div class="case-body">
+        <h4>Kịch bản</h4>
+        <p>
+          ECU diagnostic gateway cần ghi nhận mọi reset bất thường để báo cáo qua DTC khi
+          thợ scan xe. Phân biệt được POR (bình thường) vs Watchdog reset (bug) vs External reset
+          (có thể do EMI).
+        </p>
+        <h4>Configuration outline</h4>
+        <ul class="bullets">
+          <li><code>McuResetSettingConf</code> ánh xạ từng reset reason → DEM event ID.</li>
+          <li>Bật <code>McuPerformResetApi = TRUE</code> để có thể trigger reset từ diagnostic command.</li>
+        </ul>
+        <h4>Call pattern sau wakeup</h4>
+<pre data-lang="C — Diagnostic reset reason handler"><span class="k">void</span> <span class="f">DiagECU_PostReset</span>(<span class="k">void</span>) {
+    Mcu_ResetType  reason = <span class="f">Mcu_GetResetReason</span>();
+    Mcu_RawResetType  raw = <span class="f">Mcu_GetResetRawValue</span>();
+
+    <span class="k">switch</span> (reason) {
+        <span class="k">case</span> MCU_POWER_ON_RESET:
+            <span class="c">// normal — just log info</span>
+            <span class="k">break</span>;
+        <span class="k">case</span> MCU_WATCHDOG_RESET:
+            <span class="c">// raw value tells IWDG vs WWDG on STM32F4</span>
+            <span class="k">if</span> (raw <span class="o">&amp;</span> RCC_CSR_IWDGRSTF) {
+                <span class="f">Dem_SetEventStatus</span>(DEM_EVT_IWDG_RST, DEM_EVENT_STATUS_FAILED);
+            } <span class="k">else if</span> (raw <span class="o">&amp;</span> RCC_CSR_WWDGRSTF) {
+                <span class="f">Dem_SetEventStatus</span>(DEM_EVT_WWDG_RST, DEM_EVENT_STATUS_FAILED);
+            }
+            <span class="k">break</span>;
+        <span class="k">case</span> MCU_SW_RESET:
+            <span class="c">// intentional, e.g. after firmware update</span>
+            <span class="k">break</span>;
+        <span class="k">case</span> MCU_RESET_UNDEFINED:
+        <span class="k">default</span>:
+            <span class="f">Dem_SetEventStatus</span>(DEM_EVT_UNKNOWN_RST, DEM_EVENT_STATUS_FAILED);
+    }
+}</pre>
+        <h4>Lưu ý</h4>
+        <p>
+          Reset flag trong RCC_CSR phải được clear sau khi đọc — nếu không, mọi lần boot sẽ thấy
+          flag cũ. Nhiều implementation MCU Driver tự động clear trong <code>Mcu_GetResetReason</code>,
+          nhưng cần verify với vendor doc — không phải lúc nào cũng vậy.
+        </p>
+      </div>
+    </div>
+
+    <!-- CASE 03 -->
+    <div class="case">
+      <div class="case-header">
+        <div class="case-id">CASE / 03</div>
+        <div class="case-title">Low-power wakeup — Smart Junction Box</div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">Mcu_SetMode</span>
+        <span class="pill on">BswM integration</span>
+        <span class="pill on">EcuM_Sleep</span>
+        <span class="pill f1">STM32F1 @ 72 MHz</span>
+      </div>
+      <div class="case-body">
+        <h4>Kịch bản</h4>
+        <p>
+          ECU phụ trong xe chạy pin: khi xe khóa, ECU phải vào Stop mode chỉ tiêu thụ µA.
+          Khi có CAN wake-up frame, MCU phải wake và xử lý trong vài ms.
+        </p>
+        <h4>Configuration outline</h4>
+        <ul class="bullets">
+          <li>Định nghĩa 2 mode trong <code>McuModeSettingConf</code>: ID 0 = RUN, ID 1 = STOP.</li>
+          <li>BswM rule chuyển sang STOP khi nhận tín hiệu sleep từ ComM/Nm.</li>
+        </ul>
+        <h4>Call pattern</h4>
+<pre data-lang="C — BswM action plan: enter sleep"><span class="c">// Triggered by BswM when CommunicationMode = NO_COMMUNICATION</span>
+<span class="k">void</span> <span class="f">BswM_Action_EnterSleep</span>(<span class="k">void</span>) {
+    <span class="c">// 1. Disable peripherals not needed in sleep</span>
+    <span class="f">CanIf_SetControllerMode</span>(<span class="n">0</span>, CAN_CS_SLEEP);
+
+    <span class="c">// 2. Configure wakeup sources (CAN RX pin EXTI...)</span>
+    <span class="f">EcuM_SelectShutdownTarget</span>(ECUM_STATE_SLEEP, <span class="n">0</span>);
+
+    <span class="c">// 3. Switch MCU mode → STOP</span>
+    <span class="f">Mcu_SetMode</span>(MCU_MODE_STOP);
+    <span class="c">// MCU enters WFI / STOP — code execution paused here</span>
+    <span class="c">// ...</span>
+    <span class="c">// On wakeup, execution resumes RIGHT HERE</span>
+
+    <span class="c">// 4. Re-init clock (STOP mode disabled PLL)</span>
+    <span class="f">Mcu_InitClock</span>(<span class="n">0</span>);
+    <span class="k">while</span> (<span class="f">Mcu_GetPllStatus</span>() <span class="o">!=</span> MCU_PLL_LOCKED);
+    (<span class="k">void</span>)<span class="f">Mcu_DistributePllClock</span>();
+
+    <span class="c">// 5. Notify EcuM about wakeup</span>
+    <span class="f">EcuM_CheckWakeup</span>(WAKEUP_SRC_CAN);
+}</pre>
+        <h4>Bẫy thường gặp</h4>
+        <ul class="bullets">
+          <li><strong>Trên STM32F1:</strong> Stop mode reset HSE/PLL, sau wakeup MCU chạy HSI 8 MHz mặc định. Nếu không re-init clock, CAN/UART sẽ sai baudrate.</li>
+          <li><strong>Trên STM32F4:</strong> Tương tự nhưng có thêm tùy chọn STOP với regulator low-power. Phải verify wake-up time đáp ứng yêu cầu hệ thống (50-100µs vs vài ms).</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CASE 04 -->
+    <div class="case">
+      <div class="case-header">
+        <div class="case-id">CASE / 04</div>
+        <div class="case-title">Multiple clock setting cho safety — Engine Control Module</div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">2× McuClockSettingConfig</span>
+        <span class="pill on">CSS enabled</span>
+        <span class="pill warn">ASIL-B target</span>
+      </div>
+      <div class="case-body">
+        <h4>Kịch bản</h4>
+        <p>
+          EMS yêu cầu degraded mode khi HSE fail (ví dụ thạch anh chết do EMI hoặc vibration).
+          Bình thường chạy 168 MHz từ HSE, fallback xuống 16 MHz HSI khi mất HSE — vẫn đủ
+          điều khiển spark cơ bản để xe về xưởng.
+        </p>
+        <h4>Configuration outline</h4>
+        <ul class="bullets">
+          <li><code>McuClockSettingId = 0</code>: "Normal_168MHz_HSE_PLL".</li>
+          <li><code>McuClockSettingId = 1</code>: "Safe_16MHz_HSI_NoPll".</li>
+          <li><code>McuClockSrcFailureNotification = TRUE</code> để CSS trigger DEM event.</li>
+        </ul>
+        <h4>Switch flow</h4>
+<pre data-lang="C — Clock failure handling"><span class="c">// NMI Handler triggered by HSE Clock Security System</span>
+<span class="k">void</span> <span class="f">Mcu_ClockFailureNotification</span>(<span class="k">void</span>) {
+    <span class="c">// Implemented as DEM event callback</span>
+    <span class="f">Dem_SetEventStatus</span>(DEM_EVT_CLOCK_FAILURE, DEM_EVENT_STATUS_FAILED);
+
+    <span class="c">// Switch to safe clock setting</span>
+    <span class="k">if</span> (<span class="f">Mcu_InitClock</span>(<span class="n">1</span>) == E_OK) {  <span class="c">// Safe mode</span>
+        <span class="c">// HSI doesn't need PLL — skip distribute step</span>
+        <span class="c">// Notify upper layer to enter limp-home mode</span>
+        <span class="f">BswM_RequestMode</span>(BSWM_MODE_LIMP_HOME);
+    } <span class="k">else</span> {
+        <span class="c">// Catastrophic failure → reset</span>
+        <span class="f">Mcu_PerformReset</span>();
+    }
+}</pre>
+        <h4>Lưu ý</h4>
+        <p>
+          ASIL-rated MCU Driver từ vendor (NXP, Vector, Elektrobit) thường có DDV (Driver Development
+          Verification) report — cần dùng version đã qualified, không tự implement. Self-developed
+          MCAL trên STM32 chỉ phù hợp với QM (Quality Management), không đạt ASIL-B trở lên trừ khi
+          có safety case đầy đủ.
+        </p>
+      </div>
+    </div>
+
+    <!-- CASE 05 -->
+    <div class="case">
+      <div class="case-header">
+        <div class="case-id">CASE / 05</div>
+        <div class="case-title">Dynamic frequency scaling — Battery Management System</div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">3× McuClockSettingConfig</span>
+        <span class="pill on">Runtime clock switch</span>
+        <span class="pill f4">STM32F4</span>
+      </div>
+      <div class="case-body">
+        <h4>Kịch bản</h4>
+        <p>
+          BMS đo dòng và điện áp 256 cell pin. Khi xe ở chế độ active (sạc/xả), cần CPU full speed
+          để chạy thuật toán SOC/SOH. Khi xe nghỉ, giảm CPU xuống để kéo dài pin 12V phụ.
+        </p>
+        <h4>Configuration outline</h4>
+        <ul class="bullets">
+          <li>Clock setting 0: 168 MHz full performance.</li>
+          <li>Clock setting 1: 84 MHz balanced.</li>
+          <li>Clock setting 2: 16 MHz idle.</li>
+        </ul>
+        <h4>Switch trigger</h4>
+<pre data-lang="C — Dynamic switch driven by BswM"><span class="c">// Application requests low power → BswM action</span>
+<span class="k">void</span> <span class="f">BswM_Action_LowPowerClock</span>(<span class="k">void</span>) {
+    <span class="c">// 1. Stop time-critical peripherals</span>
+    <span class="f">CanIf_SetControllerMode</span>(<span class="n">0</span>, CAN_CS_STOPPED);
+
+    <span class="c">// 2. Switch clock</span>
+    <span class="f">Mcu_InitClock</span>(<span class="n">2</span>);  <span class="c">// 16 MHz idle</span>
+    <span class="c">// Note: HSI doesn't need PllDistribute on STM32</span>
+
+    <span class="c">// 3. Restart peripherals with new clock</span>
+    <span class="f">CanIf_SetControllerMode</span>(<span class="n">0</span>, CAN_CS_STARTED);
+
+    <span class="c">// 4. UART baudrate auto-recalculated by upper-layer</span>
+}</pre>
+        <h4>Bẫy thường gặp</h4>
+        <ul class="bullets">
+          <li>Quên reconfig peripheral sau switch clock → UART/SPI/CAN baudrate sai. Stop trước, restart sau.</li>
+          <li>Flash wait state phải đổi <em>trước khi tăng</em> clock và <em>sau khi giảm</em> clock. Implementation MCU Driver phải xử lý đúng — verify với vendor!</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CASE 06 -->
+    <div class="case">
+      <div class="case-header">
+        <div class="case-id">CASE / 06</div>
+        <div class="case-title">Software reset từ diagnostic — UDS service 0x11</div>
+      </div>
+      <div class="pill-row">
+        <span class="pill on">Mcu_PerformReset</span>
+        <span class="pill on">Dcm integration</span>
+        <span class="pill on">NvM flush</span>
+      </div>
+      <div class="case-body">
+        <h4>Kịch bản</h4>
+        <p>
+          Sau khi flash firmware mới qua UDS, tool thợ máy gửi service 0x11 (ECUReset).
+          MCU phải reset để chạy firmware mới — nhưng trước đó phải flush NvM và đảm bảo
+          không có ghi đang dở.
+        </p>
+        <h4>Implementation</h4>
+<pre data-lang="C — Dcm callback for service 0x11"><span class="t">Std_ReturnType</span> <span class="f">Dcm_EcuReset_Indication</span>(<span class="k">void</span>) {
+    <span class="c">// 1. Send positive response BEFORE reset</span>
+    <span class="f">Dcm_SendPositiveResponse</span>();
+
+    <span class="c">// 2. Wait for transmission complete (max ~100ms)</span>
+    <span class="f">PduR_WaitForTransmissionDone</span>();
+
+    <span class="c">// 3. Flush NvM — critical to not lose calibration data</span>
+    <span class="f">NvM_WriteAll</span>();
+    <span class="k">while</span> (<span class="f">NvM_GetStatus</span>() != NVM_REQ_OK);
+
+    <span class="c">// 4. Disable interrupts and trigger reset</span>
+    <span class="f">SchM_Enter_Mcu_MCU_EXCLUSIVE_AREA_0</span>();
+    <span class="f">Mcu_PerformReset</span>();
+    <span class="c">// Never returns</span>
+
+    <span class="k">return</span> E_OK;  <span class="c">// unreachable</span>
+}</pre>
+        <h4>Bẫy thường gặp</h4>
+        <ul class="bullets">
+          <li>Gọi <code>Mcu_PerformReset</code> trước khi UDS response gửi ra → tool báo timeout.</li>
+          <li>Không flush NvM → mất config khi reset. Đảm bảo NvM_WriteAll hoàn tất trước.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tip">
+      <strong>Pattern chung khi tích hợp MCU Driver:</strong> Luôn nghĩ về MCU Driver như "abstraction
+      của RCC/PWR/SCB" — code application không bao giờ touch register trực tiếp. Mọi clock change,
+      reset, mode change đều route qua API. Khi review code, search keyword "RCC->" hoặc "PWR->" —
+      mọi xuất hiện ngoài Mcu.c là vi phạm AUTOSAR layering.
+    </div>
+  </div>
+</section>
+
+<!-- CH 07 — INIT ORDER -->
+<section class="chapter" id="init">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 07</div>
+    <div class="ch-tag">Init dependency</div>
+  </aside>
+  <div class="ch-body">
+    <h2><em>Init order</em> &amp; Dependency</h2>
+
+    <h3>MCU Driver là root dependency</h3>
+    <p>
+      Trong AUTOSAR BSW stack, MCU Driver là một trong những module init <strong>đầu tiên</strong>.
+      Hầu hết các MCAL khác (Port, Dio, Spi, Can, Adc...) cần clock đã ổn định, mà clock được set up
+      bởi MCU Driver.
+    </p>
+
+    <div class="dep-graph"><span class="hi">EcuM Startup Sequence (simplified)</span>
+<span class="dim">══════════════════════════════════════════</span>
+
+<span class="acc">[1]</span> Start-up code (vector table, stack, .data, .bss)
+   <span class="dim">↓</span>
+<span class="acc">[2]</span> <span class="hi">Mcu_Init()</span>             <span class="dim">— ROOT — must be first MCAL</span>
+   <span class="dim">↓</span>
+<span class="acc">[3]</span> <span class="hi">Mcu_InitClock(0)</span>       <span class="dim">— configure PLL</span>
+   <span class="dim">↓</span>
+<span class="acc">[4]</span> Wait <span class="hi">Mcu_GetPllStatus() == LOCKED</span>
+   <span class="dim">↓</span>
+<span class="acc">[5]</span> <span class="hi">Mcu_DistributePllClock()</span>
+   <span class="dim">↓</span>
+<span class="acc">[6]</span> <span class="hi">Port_Init()</span>             <span class="dim">— GPIO config (depends on MCU clock)</span>
+   <span class="dim">↓</span>
+<span class="acc">[7]</span> Dio_Init(), Gpt_Init(), Adc_Init(), ...
+   <span class="dim">↓</span>
+<span class="acc">[8]</span> Spi_Init(), Can_Init(), ...
+   <span class="dim">↓</span>
+<span class="acc">[9]</span> ECU Abstraction Layer init
+   <span class="dim">↓</span>
+<span class="acc">[10]</span> Service Layer: Os, Com, Dcm, ...
+   <span class="dim">↓</span>
+<span class="acc">[11]</span> RTE init → SWC start</div>
+
+    <h3>Module phụ thuộc MCU Driver</h3>
+    <ul class="bullets">
+      <li><strong>Tất cả MCAL khác</strong> — vì cần clock được set up trước.</li>
+      <li><strong>EcuM</strong> — gọi Mcu_GetResetReason để xác định startup path.</li>
+      <li><strong>BswM</strong> — gọi Mcu_SetMode khi chuyển ECU mode.</li>
+      <li><strong>Dcm (Diagnostic Communication Manager)</strong> — gọi Mcu_PerformReset cho service 0x11.</li>
+    </ul>
+
+    <h3>Module MCU Driver phụ thuộc</h3>
+    <ul class="bullets">
+      <li><strong>DET</strong> — để report development error (nếu McuDevErrorDetect = TRUE).</li>
+      <li><strong>DEM</strong> — để report MCU_E_CLOCK_FAILURE (nếu McuClockSrcFailureNotification = TRUE).</li>
+      <li><strong>SchM</strong> — để protect critical section (read-modify-write trên internal state).</li>
+      <li><em>Không phụ thuộc</em> module nào trong cùng MCAL layer.</li>
+    </ul>
+
+    <div class="note">
+      <strong>Bẫy init order kinh điển:</strong> Quên gọi <code>Mcu_DistributePllClock</code> sau khi
+      PLL lock → các MCAL khác init thành công về mặt API nhưng clock thực tế vẫn là HSI/HSE thấp.
+      UART/CAN baudrate calculation đúng theo config (giả định CPU 168 MHz) nhưng register set lại
+      dựa trên thực tế (16 MHz) → mọi truyền thông sai. Bug rất khó debug vì code không lỗi rõ ràng.
+    </div>
+  </div>
+</section>
+
+<!-- CH 08 — MEMORY -->
+<section class="chapter" id="memory">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 08</div>
+    <div class="ch-tag">Memory</div>
+  </aside>
+  <div class="ch-body">
+    <h2><em>Memory</em> &amp; Performance</h2>
+
+    <h3>Memory mapping sections</h3>
+    <p>
+      MCU Driver tuân thủ AUTOSAR memory mapping (file <code>MemMap.h</code>). Các section điển hình:
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Section</th><th>Nội dung</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>MCU_START_SEC_CODE / STOP_SEC_CODE</td><td>Code thực thi của các hàm Mcu_*</td></tr>
+          <tr><td>MCU_START_SEC_CONST_*BIT</td><td>Config struct hard-coded (PC variant)</td></tr>
+          <tr><td>MCU_START_SEC_VAR_INIT_UNSPECIFIED</td><td>Internal state khởi tạo (init flag, current mode)</td></tr>
+          <tr><td>MCU_START_SEC_VAR_NOINIT_UNSPECIFIED</td><td>Internal state không cần init (cache values)</td></tr>
+          <tr><td>MCU_START_SEC_VAR_FAST_INIT_UNSPECIFIED</td><td>State truy cập tần suất cao (nếu vendor support)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Footprint xấp xỉ trên STM32F4/F1</h3>
+    <p>
+      Tùy implementation (vendor MCAL hoặc self-developed), số liệu có thể dao động:
+    </p>
+    <ul class="bullets">
+      <li><strong>ROM</strong>: 2-5 KB code + 200-500 B const config (PC variant, all APIs enabled).</li>
+      <li><strong>RAM</strong>: 20-100 B internal state.</li>
+      <li>Tắt API không dùng (<code>McuPerformResetApi = FALSE</code>, <code>McuGetRamStateApi = FALSE</code>) giảm được ~10-20% ROM.</li>
+      <li>DET disable (<code>McuDevErrorDetect = FALSE</code>) giảm thêm ~15-25% ROM trong production build.</li>
+    </ul>
+
+    <h3>Timing constraints</h3>
+    <ul class="bullets">
+      <li><strong>Mcu_Init</strong>: thường &lt; 100 µs (chỉ set vài register).</li>
+      <li><strong>Mcu_InitClock</strong>: vài ms trên STM32F4 (PLL lock ~200 µs + flash latency setup), tương tự F1.</li>
+      <li><strong>Mcu_GetPllStatus</strong>: vài chu kỳ CPU (đọc 1 register).</li>
+      <li><strong>Mcu_PerformReset</strong>: không return — MCU reset trong vài µs.</li>
+      <li><strong>Mcu_SetMode (vào STOP/STANDBY)</strong>: tức thì, nhưng wakeup latency 50-100 µs (F4) / 5-10 µs (F1).</li>
+    </ul>
+
+    <div class="tip">
+      <strong>Lưu ý timing cho safety-critical:</strong> Nếu ECU có deadline cứng (ví dụ EMS phải
+      phản hồi crank signal dưới 1ms), tính cả thời gian wake-up từ STOP. Trên STM32F1, wake-up
+      nhanh hơn (chỉ vài µs) vì kiến trúc đơn giản. STM32F4 chậm hơn do flash trickier latency.
+    </div>
+  </div>
+</section>
+
+<!-- CH 09 — PARAMS -->
+<section class="chapter" id="params">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 09</div>
+    <div class="ch-tag">Config params</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Configuration <em>parameters</em></h2>
+    <p>
+      Đây là các parameter quan trọng nhất bạn sẽ config qua tool. Phần lớn còn lại là hardware-specific
+      và vendor-dependent (PLL M/N/P/Q trên F4, PLL MUL/PREDIV trên F1...).
+    </p>
+
+    <h3>General parameters</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Tác dụng</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>McuDevErrorDetect</td><td>Boolean</td><td>TRUE</td><td>Bật DET reporting (development build)</td></tr>
+          <tr><td>McuVersionInfoApi</td><td>Boolean</td><td>FALSE</td><td>Bật Mcu_GetVersionInfo()</td></tr>
+          <tr><td>McuGetRamStateApi</td><td>Boolean</td><td>FALSE</td><td>Bật Mcu_GetRamState() — STM32 thường FALSE</td></tr>
+          <tr><td>McuPerformResetApi</td><td>Boolean</td><td>TRUE</td><td>Bật Mcu_PerformReset()</td></tr>
+          <tr><td>McuInitClock</td><td>Boolean</td><td>TRUE</td><td>Bật Mcu_InitClock() (nếu FALSE, MCU không config PLL)</td></tr>
+          <tr><td>McuNoPll</td><td>Boolean</td><td>FALSE</td><td>TRUE nếu MCU không có PLL hoặc PLL auto-lock (không áp dụng cho STM32)</td></tr>
+          <tr><td>McuClockSrcFailureNotification</td><td>Boolean</td><td>FALSE</td><td>Bật notification cho CSS event</td></tr>
+          <tr><td>McuTimeoutDuration</td><td>Float</td><td>—</td><td>Timeout chờ PLL lock (µs)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Clock setting parameters</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Range</th><th>Tác dụng</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>McuClockSettingId</td><td>0..255</td><td>Symbolic ID dùng làm argument cho Mcu_InitClock</td></tr>
+          <tr><td>McuClockReferencePointFrequency</td><td>Hz</td><td>Tần số tại reference point</td></tr>
+          <tr><td>(vendor-specific)</td><td>—</td><td>PLL M/N/P/Q, HSE freq, prescalers, flash latency...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>RAM section parameters</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Parameter</th><th>Tác dụng</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>McuRamSectionBaseAddress</td><td>Địa chỉ bắt đầu vùng RAM cần init</td></tr>
+          <tr><td>McuRamSectionSize</td><td>Số byte cần init</td></tr>
+          <tr><td>McuRamDefaultValue</td><td>Giá trị fill (thường 0x00)</td></tr>
+          <tr><td>McuRamSectionWriteSize</td><td>Số byte ghi mỗi lần (1, 2, 4, 8)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- CH 10 — INTEGRATION -->
+<section class="chapter" id="integration">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 10</div>
+    <div class="ch-tag">Integration</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Integration với <em>upper layer</em></h2>
+
+    <h3>EcuM integration</h3>
+    <p>
+      EcuM gọi MCU Driver trong các state chính:
+    </p>
+    <ul class="bullets">
+      <li><strong>StartPreOS</strong>: Mcu_Init, Mcu_InitClock, Mcu_GetResetReason.</li>
+      <li><strong>Sleep transition</strong>: Mcu_SetMode (sang sleep mode tương ứng).</li>
+      <li><strong>Wakeup</strong>: re-init clock sau khi rời low-power.</li>
+      <li><strong>GoOffOne</strong>: Mcu_PerformReset trước khi shutdown ECU.</li>
+    </ul>
+
+    <h3>BswM integration</h3>
+    <p>
+      BswM có thể trigger <code>Mcu_SetMode</code> thông qua action list khi nhận mode request từ application.
+      Ánh xạ thường configure qua tool, không cần code C trực tiếp.
+    </p>
+
+    <h3>Dcm integration</h3>
+    <p>
+      Dcm gọi <code>Mcu_PerformReset</code> để xử lý UDS service 0x11 (ECUReset). Cần ensure
+      transmission của positive response hoàn tất trước reset.
+    </p>
+
+    <h3>Quy ước naming cần nhớ</h3>
+    <ul class="bullets">
+      <li><strong>Public API</strong>: <code>Mcu_&lt;verb&gt;&lt;Object&gt;()</code> — Mcu_Init, Mcu_InitClock, Mcu_SetMode...</li>
+      <li><strong>Configuration container</strong>: <code>Mcu&lt;Object&gt;Conf</code> — McuClockSettingConfig, McuModeSettingConf...</li>
+      <li><strong>Type</strong>: <code>Mcu_&lt;Object&gt;Type</code> — Mcu_ConfigType, Mcu_ClockType...</li>
+      <li><strong>Error</strong>: <code>MCU_E_&lt;Reason&gt;</code> — MCU_E_PARAM_CLOCK, MCU_E_UNINIT...</li>
+    </ul>
+
+    <div class="spec">
+      <strong>Compiler abstraction:</strong> Code MCU Driver chuẩn AUTOSAR phải dùng macros từ
+      <code>Compiler.h</code> (như <code>FUNC()</code>, <code>P2CONST()</code>, <code>VAR()</code>)
+      thay vì C keyword trực tiếp. Điều này cho phép port giữa các compiler khác nhau (Keil, GCC, IAR, Greenhills).
+    </div>
+  </div>
+</section>
+
+<!-- CH 11 — HW DIFFERENCES -->
+<section class="chapter" id="hw-diff">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 11</div>
+    <div class="ch-tag">F4 vs F1</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Khác biệt <em>STM32F4 vs STM32F1</em></h2>
+    <p>
+      Mặc dù cùng dùng MCU Driver API chuẩn, implementation cho STM32F4 và STM32F1 khác biệt đáng kể
+      ở tầng hardware. Bảng dưới tóm tắt các điểm cần lưu ý khi config tool hoặc viết MCAL self-developed.
+    </p>
+
+    <h3>So sánh hardware</h3>
+    <div class="table-wrap">
+      <table class="compare">
+        <thead>
+          <tr><th>Tính năng</th><th>STM32F1xx</th><th>STM32F4xx</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CPU core</td>
+            <td class="f1">Cortex-M3</td>
+            <td class="f4">Cortex-M4F (FPU)</td>
+          </tr>
+          <tr>
+            <td>Max system clock</td>
+            <td class="f1">72 MHz</td>
+            <td class="f4">100-180 MHz (model-dependent)</td>
+          </tr>
+          <tr>
+            <td>PLL structure</td>
+            <td class="f1">PREDIV + MUL (đơn giản)</td>
+            <td class="f4">M / N / P / Q (4 chia/nhân)</td>
+          </tr>
+          <tr>
+            <td>HSE crystal range</td>
+            <td class="f1">4-16 MHz</td>
+            <td class="f4">4-26 MHz</td>
+          </tr>
+          <tr>
+            <td>HSI frequency</td>
+            <td class="f1">8 MHz</td>
+            <td class="f4">16 MHz</td>
+          </tr>
+          <tr>
+            <td>Second PLL (audio)</td>
+            <td class="f1">Không có</td>
+            <td class="f4">PLLI2S (chỉ một số model F4)</td>
+          </tr>
+          <tr>
+            <td>USB 48 MHz source</td>
+            <td class="f1">PLL /1.5 (cố định)</td>
+            <td class="f4">PLL Q (linh hoạt)</td>
+          </tr>
+          <tr>
+            <td>Voltage scaling</td>
+            <td class="f1">Không có</td>
+            <td class="f4">VOS Scale 1/2/3 (tiết kiệm điện)</td>
+          </tr>
+          <tr>
+            <td>Flash latency max</td>
+            <td class="f1">2 WS</td>
+            <td class="f4">7 WS (180 MHz, VOS=1)</td>
+          </tr>
+          <tr>
+            <td>Reset reason bits (RCC_CSR)</td>
+            <td class="f1">7 nguyên nhân</td>
+            <td class="f4">8 nguyên nhân (thêm BOR)</td>
+          </tr>
+          <tr>
+            <td>Stop mode wakeup latency</td>
+            <td class="f1">~5 µs</td>
+            <td class="f4">~13-100 µs (regulator dependent)</td>
+          </tr>
+          <tr>
+            <td>Standby current</td>
+            <td class="f1">~2-3 µA</td>
+            <td class="f4">~2.5 µA (with RTC)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Ảnh hưởng tới config</h3>
+    <p>
+      Khi config MCU Driver qua tool (tresos / DaVinci), một số khác biệt phải khai báo đúng dòng MCU:
+    </p>
+
+    <h4>STM32F1 — PLL config đơn giản</h4>
+<pre data-lang="arxml — F1 clock setting concept"><span class="c">// STM32F1: SYSCLK = HSE_or_HSI / PREDIV * MUL</span>
+<span class="c">// Example: HSE 8 MHz → 72 MHz</span>
+HSE_freq      = <span class="n">8 MHz</span>
+PLL_source    = HSE
+PLL_mul       = <span class="n">9</span>      <span class="c">// → 8 MHz × 9 = 72 MHz</span>
+AHB_prescaler = <span class="n">1</span>
+APB1_prescal  = <span class="n">2</span>      <span class="c">// max 36 MHz</span>
+APB2_prescal  = <span class="n">1</span>      <span class="c">// max 72 MHz</span>
+Flash_latency = <span class="n">2</span>      <span class="c">// 2 WS for &gt;48 MHz</span></pre>
+
+    <h4>STM32F4 — PLL config phức tạp hơn</h4>
+<pre data-lang="arxml — F4 clock setting concept"><span class="c">// STM32F4: SYSCLK = (HSE / M * N) / P</span>
+<span class="c">// Example: HSE 8 MHz → 168 MHz (F407) or 100 MHz (F411)</span>
+HSE_freq      = <span class="n">8 MHz</span>
+PLL_source    = HSE
+PLL_M         = <span class="n">8</span>      <span class="c">// 8/8 = 1 MHz (must be 1-2 MHz)</span>
+PLL_N         = <span class="n">336</span>    <span class="c">// 1 * 336 = 336 MHz VCO</span>
+PLL_P         = <span class="n">2</span>      <span class="c">// 336/2 = 168 MHz SYSCLK</span>
+PLL_Q         = <span class="n">7</span>      <span class="c">// 336/7 = 48 MHz USB</span>
+AHB_prescaler = <span class="n">1</span>
+APB1_prescal  = <span class="n">4</span>      <span class="c">// max 42 MHz on F407</span>
+APB2_prescal  = <span class="n">2</span>      <span class="c">// max 84 MHz on F407</span>
+Flash_latency = <span class="n">5</span>      <span class="c">// 5 WS @ 168 MHz, VOS=1</span>
+VOS_scale     = <span class="n">1</span>      <span class="c">// for max performance</span></pre>
+
+    <h3>Mcu_GetResetRawValue — bit layout khác nhau</h3>
+    <p>
+      Cả hai dòng đều có thanh ghi RCC_CSR ghi reset cause, nhưng bit position khác nhau.
+      Implementation phải dùng correct mask cho từng MCU:
+    </p>
+
+    <div class="table-wrap">
+      <table class="compare">
+        <thead>
+          <tr><th>Reset reason</th><th>STM32F1 (RCC_CSR)</th><th>STM32F4 (RCC_CSR)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Low-power reset</td><td class="f1">bit 31 (LPWRRSTF)</td><td class="f4">bit 31 (LPWRRSTF)</td></tr>
+          <tr><td>Window watchdog</td><td class="f1">bit 30 (WWDGRSTF)</td><td class="f4">bit 30 (WWDGRSTF)</td></tr>
+          <tr><td>Independent watchdog</td><td class="f1">bit 29 (IWDGRSTF)</td><td class="f4">bit 29 (IWDGRSTF)</td></tr>
+          <tr><td>Software reset</td><td class="f1">bit 28 (SFTRSTF)</td><td class="f4">bit 28 (SFTRSTF)</td></tr>
+          <tr><td>Power-on reset</td><td class="f1">bit 27 (PORRSTF)</td><td class="f4">bit 27 (PORRSTF)</td></tr>
+          <tr><td>External reset (PIN)</td><td class="f1">bit 26 (PINRSTF)</td><td class="f4">bit 26 (PINRSTF)</td></tr>
+          <tr><td>Brown-out reset</td><td class="f1">Không có</td><td class="f4">bit 25 (BORRSTF)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <strong>Đừng dùng chung implementation:</strong> Mặc dù header API giống nhau, file Mcu.c
+      cho F4 và F1 phải tách riêng (hoặc dùng <code>#ifdef</code> phân biệt). PLL_Q chỉ có trên F4
+      — nếu code F1 tham chiếu PLLQ sẽ compile error. Mọi vendor MCAL thương mại đều ship
+      hai package riêng cho hai dòng.
+    </div>
+
+    <div class="tip">
+      <strong>Mapping clock setting ID khi switch dòng:</strong> Nếu codebase phải chạy được trên
+      cả F1 và F4 (rare nhưng có), giữ <em>cùng</em> McuClockSettingId cho các use case tương đương:
+      ID 0 = "max performance", ID 1 = "balanced", ID 2 = "low power". Application code chỉ gọi
+      <code>Mcu_InitClock(0..2)</code>, không cần biết MCU nào.
+    </div>
+  </div>
+</section>
+
+<!-- CH 12 — DEBUG -->
+<section class="chapter" id="debug">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 12</div>
+    <div class="ch-tag">Debug</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Checklist <em>debug</em> &amp; tích hợp</h2>
+
+    <h3>Khi MCU không boot hoặc clock sai</h3>
+    <ol class="steps">
+      <li><strong>Verify file generated</strong> — mở <code>Mcu_Cfg.h</code> và <code>Mcu_Cfg.c</code>, kiểm tra giá trị PLL M/N/P/Q khớp với clock setting bạn config trong tresos. Một con số sai làm sai cả PLL.</li>
+      <li><strong>Check init order trong EcuM</strong> — đảm bảo Mcu_Init gọi trước Mcu_InitClock, và DistributePllClock gọi sau khi PLL lock. Nếu dùng EcuM tool-generated, mở <code>EcuM_Callout_Stubs.c</code> kiểm tra.</li>
+      <li><strong>Bật McuDevErrorDetect</strong> — set hook để bắt mọi DET error. Place breakpoint trong Det_ReportError để xem service nào gọi với error code gì.</li>
+      <li><strong>Đo clock bằng MCO</strong> — output PLLCLK ra chân MCO (PA8 trên F4, PA8 trên F1) với prescaler hợp lý, đo bằng oscilloscope. Đây là cách <em>không thể nói dối</em> để biết clock thực tế.</li>
+      <li><strong>Verify HSE ready</strong> — kiểm tra <code>RCC_CR.HSERDY</code> bằng debugger. Nếu mãi không lên, có thể: thạch anh chết, cap matching sai, layout PCB tệ.</li>
+      <li><strong>Check Flash latency</strong> — đọc <code>FLASH_ACR.LATENCY</code>. Nếu sai (quá thấp khi clock cao), MCU sẽ hard-fault hoặc treo.</li>
+      <li><strong>Read Mcu_GetResetReason ở đầu main</strong> — biết MCU đến state hiện tại từ đâu. Watchdog reset thường chỉ ra clock chậm hơn kỳ vọng.</li>
+    </ol>
+
+    <h3>Khi UART/CAN/SPI baudrate sai</h3>
+    <ol class="steps">
+      <li><strong>Verify SystemCoreClock</strong> (nếu dùng CMSIS variable) — bị sai sau khi switch clock mà không gọi update.</li>
+      <li><strong>Check Mcu_DistributePllClock đã gọi chưa</strong> — đây là bug #1 cho baudrate sai mà PLL vẫn lock.</li>
+      <li><strong>Verify APB prescaler</strong> — nhớ rằng timer trên APB có quy tắc đặc biệt (×2 khi prescaler &gt; 1).</li>
+      <li><strong>Stop / start peripheral khi switch clock</strong> — nếu dynamic frequency scaling, peripheral phải reconfig sau khi clock đổi.</li>
+    </ol>
+
+    <h3>Khi DET error trigger liên tục</h3>
+    <ol class="steps">
+      <li><strong>Identify ApiId + ErrorId</strong> trong Det_ReportError parameter — biết exactly service nào và lý do gì.</li>
+      <li><strong>MCU_E_UNINIT</strong> → ai đó gọi API trước Mcu_Init. Check init order.</li>
+      <li><strong>MCU_E_PARAM_CLOCK</strong> → ClockSetting argument lớn hơn số config. Check argument value vs <code>McuClockSettings</code> count.</li>
+      <li><strong>MCU_E_PLL_NOT_LOCKED</strong> → DistributePllClock gọi trước khi lock. Check timeout loop có exit đúng không.</li>
+    </ol>
+
+    <div class="tip">
+      <strong>Quy tắc vàng debug MCU Driver:</strong> 90% bug đến từ một trong ba nguyên nhân —
+      sai init order, sai config value trong tresos, hoặc quên DistributePllClock. Verify ba điều
+      này trước khi nghi ngờ implementation MCAL hay hardware.
+    </div>
+  </div>
+</section>
+
+<!-- CH 13 — COMPLIANCE -->
+<section class="chapter" id="compliance">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / 13</div>
+    <div class="ch-tag">Reference</div>
+  </aside>
+  <div class="ch-body">
+    <h2>Compliance &amp; <em>Reference</em></h2>
+
+    <h3>AUTOSAR specifications</h3>
+    <ul class="bullets">
+      <li><strong>AUTOSAR_CP_SWS_MCUDriver R25-11</strong> — Specification of MCU Driver, Classic Platform R25-11.</li>
+      <li><strong>AUTOSAR_CP_RS_MCUDriver</strong> — Requirements on MCU Driver.</li>
+      <li><strong>AUTOSAR_CP_SWS_BSWGeneral</strong> — General requirements for all BSW modules (apply additionally).</li>
+      <li><strong>AUTOSAR_CP_EXP_LayeredSoftwareArchitecture</strong> — vị trí MCU Driver trong layered architecture.</li>
+    </ul>
+
+    <h3>MISRA &amp; safety considerations</h3>
+    <p>
+      Vendor MCAL chuẩn (Vector, Elektrobit, Mentor) tuân thủ MISRA-C:2012. Self-developed MCAL trên
+      STM32 nếu target QM (Quality Management) là OK, nhưng để đạt ASIL-B trở lên cần:
+    </p>
+    <ul class="bullets">
+      <li>Safety Manual đầy đủ.</li>
+      <li>Tool qualification (TÜV-certified config tool).</li>
+      <li>Static analysis (Polyspace, Coverity) với MISRA compliance.</li>
+      <li>Hardware diagnostic coverage analysis (FMEDA).</li>
+    </ul>
+
+    <h3>Vendor MCAL cho STM32</h3>
+    <p>
+      Lưu ý: STM32 <em>không phải</em> là target chính của các vendor AUTOSAR lớn. Các MCU automotive
+      điển hình là NXP S32K/MPC, Infineon TC2x/TC3x AURIX, Renesas RH850. STM32 thường được dùng
+      trong các project automotive không yêu cầu ASIL cao (infotainment, comfort ECU) — hoặc qua
+      ST AutoDevkit của ST cho dòng SPC5 (PowerPC).
+    </p>
+
+    <h3>Tài liệu STM tham khảo</h3>
+    <ul class="bullets">
+      <li><strong>RM0090</strong> — Reference Manual STM32F4 (F407, F417...).</li>
+      <li><strong>RM0383</strong> — Reference Manual STM32F411.</li>
+      <li><strong>RM0008</strong> — Reference Manual STM32F1.</li>
+      <li><strong>AN2606</strong> — STM32 microcontroller system memory boot mode.</li>
+      <li><strong>PM0214</strong> — STM32 Cortex-M4 programming manual (cho F4).</li>
+      <li><strong>PM0056</strong> — STM32 Cortex-M3 programming manual (cho F1).</li>
+    </ul>
+
+    <div class="spec">
+      AUTOSAR R25-11 là minor release theo lifecycle (đã release tháng 11/2025). MCU Driver SWS
+      ở R25-11 không có thay đổi đáng kể so với R24-11 — code đang chạy R24-11 thường upgrade
+      trực tiếp được mà không phải refactor.
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      MCU.MCAL<em>.</em>
+    </div>
+    <div class="footer-meta">
+      <div>// AUTOSAR Classic Platform R25-11</div>
+      <div>// STM32F4 · STM32F1 · STMicroelectronics</div>
+      <div>// Reference document for automotive embedded engineers</div>
+      <div>// Compiled · 2026</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
