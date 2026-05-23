@@ -67,7 +67,7 @@
         var recruitHeading = null;
         var headings = document.querySelectorAll('h2, h3, .elementor-heading-title');
         for (var i = 0; i < headings.length; i++) {
-            if (headings[i].textContent.trim().indexOf('Tuyển dụng') !== -1) {
+            if (headings[i].textContent.trim() === 'Recruitment') {
                 recruitHeading = headings[i];
                 break;
             }
