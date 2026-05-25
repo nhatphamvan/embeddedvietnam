@@ -1,26 +1,14 @@
 <?php
 /**
- * Serves rcc-clock-tree.svg only when requested from the lesson page.
- * Direct URL access → 403.
+ * Serves rcc-clock-tree.svg only to fetch() calls (not direct browser navigation).
+ * Sec-Fetch-Dest: empty  → fetch() / XHR  → allowed
+ * Sec-Fetch-Dest: document → direct URL    → 403
  */
 
-$allowed_origins = [
-    'https://embedded.io.vn',
-    'http://embedded.io.vn',
-];
+$dest = $_SERVER['HTTP_SEC_FETCH_DEST'] ?? '';
 
-$referer = $_SERVER['HTTP_REFERER'] ?? '';
-$origin  = $_SERVER['HTTP_ORIGIN'] ?? '';
-
-$ok = false;
-foreach ( $allowed_origins as $o ) {
-    if ( str_starts_with( $referer, $o ) || str_starts_with( $origin, $o ) ) {
-        $ok = true;
-        break;
-    }
-}
-
-if ( ! $ok ) {
+// Allow fetch() (empty) or missing header (older browsers / server-side)
+if ( $dest === 'document' || $dest === 'iframe' ) {
     http_response_code( 403 );
     header( 'Content-Type: text/plain' );
     exit( 'Forbidden' );
