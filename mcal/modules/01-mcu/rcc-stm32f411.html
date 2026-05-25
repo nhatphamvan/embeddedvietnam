@@ -596,6 +596,21 @@
   h1 { animation-delay: 0.2s; }
   .hero-sub { animation-delay: 0.35s; }
   .hero-stats { animation-delay: 0.5s; }
+
+/* ── Interactive demo iframe ── */
+.anim-embed {
+  margin: 1.5rem 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0e1116;
+}
+.anim-embed iframe {
+  width: 100%;
+  min-height: 780px;
+}
+@media (max-width: 768px) {
+  .anim-embed iframe { min-height: 500px; }
+}
 </style>
 </head>
 <body>
@@ -876,6 +891,29 @@ Q     = <span class="n">5</span>     → PLL48CK   = 200 / 5 = <span class="n">4
       PLLI2S giải quyết bằng cách cung cấp clock độc lập cho I2S, cho phép tinh chỉnh
       tự do mà không động đến SYSCLK.
     </p>
+  </div>
+</section>
+
+<!-- INTERACTIVE DEMO — RCC Animation -->
+<section class="chapter" id="interactive-demo">
+  <aside class="ch-meta">
+    <div class="ch-number">CH / ★</div>
+    <div class="ch-tag">Interactive</div>
+  </aside>
+  <div class="ch-body">
+    <h2><em>Live Demo</em> — RCC Clock Tree</h2>
+    <p>Toggle từng bit trong thanh ghi RCC để xem clock tree thay đổi theo thời gian thực.
+       Kéo thanh ghi, quan sát tần số HCLK / APB1 / APB2 cập nhật ngay lập tức.</p>
+    <div class="anim-embed">
+      <iframe
+        src="rcc-animation.html"
+        title="RCC Clock Tree Interactive Demo"
+        width="100%" height="780"
+        frameborder="0"
+        loading="lazy"
+        style="border-radius:10px;border:1px solid #2a313c;display:block;"
+      ></iframe>
+    </div>
   </div>
 </section>
 
