@@ -1,0 +1,11 @@
+# Block direct access to SVG and raw data files
+<FilesMatch "\.(svg|csv|json)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Allow svg-loader.php to run normally
+<Files "svg-loader.php">
+    Order allow,deny
+    Allow from all
+</Files>
