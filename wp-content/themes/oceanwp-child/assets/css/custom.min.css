@@ -618,7 +618,7 @@ select:focus-visible,
 }
 
 /* ---------- Courses section (injected above Recruitment) ---------- */
-.eio-courses-section { padding: clamp(1.25rem, 2.5vw, 2rem) 0; }
+.eio-courses-section { padding: 1.5rem 0 1rem; }
 .eio-courses-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
