@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STM32F411RE — RCC Live Course</title>
+<style>
+/* ── BASE ── */
+:root{
+  --bg:#0e1116;--panel:#161b22;--panel-2:#1c222b;
+  --line:#2a313c;--line-2:#3a4250;--text:#d4d4d4;--muted:#7d8590;
+  --reg-name:#7ee787;--reg-desc:#8b949e;
+  --hex:#ff7b72;--hex-glow:rgba(255,123,114,.25);
+  --bit-r:#21262d;--bit-r-fg:#484f58;
+  --bit-rw:#1f2a3d;--bit-rw-fg:#c9d1d9;
+  --bit-w:#3d2424;--bit-w-fg:#ffa198;
+  --bit-on:#238636;--bit-on-edge:#3fb950;
+  --field-edge:#58a6ff;
+  --tooltip-bg:#0d1117;--tt-name:#79c0ff;--tt-access:#d2a8ff;
+  --group-bar:linear-gradient(90deg,#1f6feb 0%,#388bfd 100%);
+  --mono:'JetBrains Mono','Fira Code','SF Mono',Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{
+  font-family:'Inter',-apple-system,Segoe UI,sans-serif;
+  background:
+    radial-gradient(ellipse at top left,rgba(56,139,253,.08),transparent 50%),
+    radial-gradient(ellipse at bottom right,rgba(63,185,80,.06),transparent 50%),
+    var(--bg);
+  color:var(--text);margin:0;padding:16px 20px 64px;
+  min-height:100vh;font-size:14px;
+}
+
+/* ── LAYOUT ── */
+#app-layout{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:16px;
+  max-width:1900px;
+  margin:0 auto;
+}
+
+/* ── CLOCK TREE PANEL ── */
+#panel-clock{
+  background:#f4f7f9;
+  border-radius:12px;
+  padding:14px 18px;
+}
+#panel-clock h2{color:#1a3a5c;margin:0 0 3px;font-size:16px}
+#panel-clock .hint{color:#555;font-size:12px;margin:0 0 10px;line-height:1.5}
+
+.canvas-container{
+  background:#fff;padding:10px;
+  border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);
+  overflow:auto;
+  max-height:72vh;
+}
+
+.control-panel{
+  background:#fff;padding:8px 12px;border-radius:8px;
+  margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,.06);
+  display:flex;gap:6px;flex-wrap:wrap;font-size:11px;
+}
+.control-panel span{padding:2px 7px;border-radius:5px;background:#eef2f5}
+.control-panel b.on {color:#2e7d32;font-weight:bold}
+.control-panel b.off{color:#999}
+
+/* Clock-tree animations */
+.text-active,.text-active text,.text-active tspan{
+  fill:#d32f2f!important;font-weight:bold!important;animation:ct-pulse 1s infinite;
+}
+@keyframes ct-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+.box-active rect,
+.box-active ellipse,
+.box-active path[fill]:not([fill="none"]){
+  fill:#e8f5e9!important;stroke:#2e7d32!important;stroke-width:2.5px!important;
+}
+.gate-active rect,
+.gate-active ellipse,
+.gate-active path[fill]:not([fill="none"]){
+  fill:#ffe0b2!important;stroke:#e65100!important;stroke-width:2px!important;
+}
+.enable-active rect,
+.enable-active ellipse,
+.enable-active path[fill]:not([fill="none"]){
+  fill:#bbdefb!important;stroke:#1565c0!important;stroke-width:2px!important;
+}
+.divider-active rect,
+.divider-active ellipse,
+.divider-active path[fill]:not([fill="none"]){
+  fill:#ffe0b2!important;stroke:#e65100!important;stroke-width:2px!important;
+}
+.signal-active{
+  stroke:#e74c3c!important;stroke-width:3px!important;
+  stroke-dasharray:10 6!important;
+  animation:ct-flow 0.6s linear infinite!important;fill:none!important;
+}
+@keyframes ct-flow{from{stroke-dashoffset:16}to{stroke-dashoffset:0}}
+[data-cell-id]{cursor:pointer;transition:filter .2s}
+[data-cell-id]:hover{filter:drop-shadow(0 0 4px rgba(0,123,255,.6))}
+
+.ct-legend{font-size:11px;color:#666;margin-top:7px}
+.ct-legend span{display:inline-block;margin-right:10px}
+.ct-legend .swatch{
+  display:inline-block;width:11px;height:9px;vertical-align:middle;
+  margin-right:3px;border:1px solid #999;border-radius:2px;
+}
+.ct-legend .dot{
+  display:inline-block;width:10px;height:3px;vertical-align:middle;
+  margin-right:3px;background:#e74c3c;
+}
+
+/* ── REGISTER PANEL ── */
+#panel-regs{min-width:0}
+
+.app-header{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px;
+}
+.app-title{
+  font-family:var(--mono);font-size:18px;font-weight:700;
+  letter-spacing:-.5px;color:#fff;margin:0;
+}
+.app-title .accent{color:#58a6ff}
+.app-sub{margin:3px 0 0;color:var(--muted);font-size:11px;font-family:var(--mono)}
+
+.legend{display:flex;gap:10px;font-size:11px;font-family:var(--mono);align-items:center}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-box{width:12px;height:12px;border-radius:3px;border:1px solid var(--line-2)}
+.legend-r  {background:var(--bit-r)}
+.legend-rw {background:var(--bit-rw)}
+.legend-w  {background:var(--bit-w)}
+.legend-on {background:var(--bit-on);border-color:var(--bit-on-edge)}
+
+.group{
+  margin-bottom:22px;border:1px solid var(--line);border-radius:10px;
+  overflow:hidden;background:var(--panel);
+  box-shadow:0 1px 0 rgba(255,255,255,.02)inset,0 4px 20px rgba(0,0,0,.3);
+}
+.group-bar{
+  background:var(--group-bar);color:#fff;padding:7px 14px;
+  font-size:11px;font-weight:700;letter-spacing:1.2px;
+  text-transform:uppercase;font-family:var(--mono);
+  display:flex;align-items:center;gap:8px;
+}
+.group-bar .count{
+  background:rgba(0,0,0,.25);padding:1px 7px;
+  border-radius:10px;font-size:10px;font-weight:600;
+}
+.group-body{padding:10px 14px}
+
+.reg{margin-bottom:18px;padding-bottom:14px;border-bottom:1px dashed var(--line)}
+.reg:last-child{margin-bottom:0;border-bottom:none;padding-bottom:0}
+.reg-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin-bottom:7px;flex-wrap:wrap;gap:7px;
+}
+.reg-head-left{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.reg-name{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--reg-name)}
+.reg-offset{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--bit-r);padding:1px 5px;border-radius:3px}
+.reg-desc{font-size:11px;color:var(--reg-desc)}
+.reg-hex-wrap{display:flex;gap:6px;align-items:center}
+.reg-reset-btn{
+  font-family:var(--mono);font-size:10px;background:transparent;
+  border:1px solid var(--line-2);color:var(--muted);
+  padding:2px 6px;border-radius:4px;cursor:pointer;transition:all .15s;
+}
+.reg-reset-btn:hover{color:#fff;border-color:#58a6ff}
+.reg-hex{
+  font-family:var(--mono);font-size:14px;font-weight:700;
+  color:var(--hex);text-shadow:0 0 10px var(--hex-glow);letter-spacing:1px;
+}
+
+.bit-grid{display:grid;grid-template-columns:repeat(32,1fr);gap:2px;position:relative}
+.bit-cell{display:flex;flex-direction:column;align-items:center;position:relative}
+.bit-num{font-family:var(--mono);font-size:8px;color:var(--muted);margin-bottom:2px}
+.bit-num.byte-edge{color:#58a6ff;font-weight:700}
+.bit-box{
+  width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  border:1px solid var(--line-2);border-radius:3px;
+  cursor:pointer;user-select:none;transition:transform .1s,box-shadow .15s,background .15s;
+}
+.bit-box.acc-R {background:var(--bit-r);color:var(--bit-r-fg);cursor:not-allowed}
+.bit-box.acc-RW{background:var(--bit-rw);color:var(--bit-rw-fg)}
+.bit-box.acc-W {background:var(--bit-w);color:var(--bit-w-fg)}
+.bit-box.on{background:var(--bit-on)!important;color:#fff;border-color:var(--bit-on-edge);box-shadow:0 0 6px rgba(63,185,80,.5)}
+.bit-box:not(.acc-R):hover{transform:translateY(-1px);border-color:#58a6ff}
+
+.bit-box.field-cell{position:relative}
+.bit-box.field-cell.field-left {border-top-left-radius:6px;border-bottom-left-radius:6px}
+.bit-box.field-cell.field-right{border-top-right-radius:6px;border-bottom-right-radius:6px}
+.bit-box.field-cell:not(.field-left) {border-left:none}
+.bit-box.field-cell:not(.field-right){border-right:none}
+.bit-box.field-cell{border-top:1px solid var(--field-edge);border-bottom:1px solid var(--field-edge)}
+.bit-box.field-cell.field-left {border-left:1px solid var(--field-edge)}
+.bit-box.field-cell.field-right{border-right:1px solid var(--field-edge)}
+.field-label{
+  position:absolute;top:-15px;font-size:8px;font-family:var(--mono);
+  color:var(--field-edge);font-weight:700;letter-spacing:.5px;
+  pointer-events:none;white-space:nowrap;
+  background:var(--panel);padding:0 3px;z-index:2;
+}
+
+.tooltip{
+  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  background:var(--tooltip-bg);border:1px solid var(--line-2);border-radius:6px;
+  padding:8px 10px;width:max-content;max-width:260px;
+  font-size:11px;line-height:1.5;z-index:50;
+  box-shadow:0 8px 24px rgba(0,0,0,.6);
+  opacity:0;visibility:hidden;transition:opacity .15s;pointer-events:none;
+}
+.bit-cell:hover .tooltip{opacity:1;visibility:visible}
+.tt-name{font-weight:700;color:var(--tt-name);font-family:var(--mono);font-size:12px;margin-bottom:3px}
+.tt-meta{display:flex;gap:8px;font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:4px}
+.tt-meta .acc{color:var(--tt-access)}
+.tt-desc{color:#c9d1d9}
+.tt-val{margin-top:5px;padding-top:5px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10px;color:#7ee787}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar button{
+  font-family:var(--mono);font-size:11px;background:var(--panel);
+  border:1px solid var(--line-2);color:var(--text);
+  padding:5px 10px;border-radius:5px;cursor:pointer;transition:all .15s;
+}
+.toolbar button:hover{border-color:#58a6ff;color:#fff}
+.toolbar .spacer{flex:1}
+.toolbar .summary{font-family:var(--mono);font-size:10px;color:var(--muted);align-self:center}
+
+/* ── LIVE BAR ── */
+.live-bar{
+  display:flex;align-items:center;gap:8px;
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;padding:6px 12px;
+  font-family:var(--mono);font-size:11px;margin-bottom:12px;
+}
+.ws-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#484f58;transition:background .3s}
+.ws-dot.connecting{background:#d29922;animation:pulse-y 1s infinite}
+.ws-dot.connected {background:#3fb950}
+.ws-dot.error     {background:#f85149}
+@keyframes pulse-y{0%,100%{opacity:1}50%{opacity:.4}}
+.ws-label{color:var(--text);font-weight:600}
+.ws-msg  {color:var(--muted);flex:1}
+.ws-poll {font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.poll-ring{
+  width:9px;height:9px;border-radius:50%;
+  border:2px solid var(--line-2);border-top-color:#58a6ff;
+  animation:spin 1s linear infinite;display:none;
+}
+.poll-ring.active{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ws-btn{
+  font-family:var(--mono);font-size:10px;background:transparent;
+  border:1px solid var(--line-2);color:var(--muted);
+  padding:2px 7px;border-radius:4px;cursor:pointer;transition:all .15s;
+}
+.ws-btn:hover{color:#fff;border-color:#58a6ff}
+
+@keyframes flash-update{0%{box-shadow:0 0 0 2px #58a6ff}100%{box-shadow:none}}
+.reg-hex.flash   {animation:flash-update .6s ease-out}
+.bit-box.flash-bit{animation:flash-update .6s ease-out}
+
+.rst-badge{
+  font-family:var(--mono);font-size:9px;padding:1px 5px;
+  border-radius:3px;display:none;margin-left:5px;
+}
+body.rst-diff-on .rst-badge{display:inline-block}
+.rst-badge.match{background:#0d2818;color:#3fb950;border:1px solid #238636}
+.rst-badge.diff {background:#2d1f00;color:#d29922;border:1px solid #d29922}
+#btn-rst-diff.active{border-color:#58a6ff;color:#58a6ff}
+
+/* ── TREE → REGISTER NAVIGATION HIGHLIGHT ── */
+@keyframes nav-pulse{
+  0%  {box-shadow:0 0 0 3px #f0c040;transform:scale(1)}
+  40% {box-shadow:0 0 0 6px #f0c040,0 0 14px rgba(240,192,64,.65);transform:scale(1.13)}
+  100%{box-shadow:0 0 0 3px #f0c040;transform:scale(1)}
+}
+.nav-highlight{
+  animation:nav-pulse .55s ease-in-out 3!important;
+  border-color:#f0c040!important;
+  position:relative;z-index:5;
+}
+.nav-toast{
+  position:fixed;top:18px;left:50%;transform:translateX(-50%);
+  background:#1a2e1a;border:1px solid #3fb950;
+  color:#7ee787;font-family:var(--mono);font-size:12px;
+  padding:9px 20px;border-radius:7px;line-height:1.6;
+  box-shadow:0 6px 24px rgba(0,0,0,.75);
+  z-index:300;pointer-events:none;text-align:center;
+  animation:toast-slide .2s ease-out;
+}
+@keyframes toast-slide{from{opacity:0;top:6px}to{opacity:1;top:18px}}
+
+/* ── MODAL ── */
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  display:none;align-items:center;justify-content:center;
+  z-index:100;backdrop-filter:blur(4px);
+}
+.modal-backdrop.active{display:flex}
+.modal{
+  background:var(--panel);border:1px solid var(--line-2);border-radius:10px;
+  padding:22px;min-width:360px;max-width:90vw;
+  box-shadow:0 20px 60px rgba(0,0,0,.8);
+}
+.modal h3{margin:0 0 3px;font-family:var(--mono);color:var(--reg-name);font-size:16px}
+.modal .sub{margin:0 0 12px;color:var(--muted);font-size:11px}
+.modal .row{display:flex;gap:10px;margin-bottom:11px;align-items:center}
+.modal label{font-family:var(--mono);font-size:10px;color:var(--muted);width:60px;text-transform:uppercase;letter-spacing:.5px}
+.modal input{
+  flex:1;background:#0d1117;border:1px solid var(--line-2);color:#fff;
+  font-family:var(--mono);font-size:13px;padding:7px 10px;border-radius:4px;outline:none;
+}
+.modal input:focus{border-color:#58a6ff}
+.modal .actions{display:flex;gap:7px;justify-content:flex-end;margin-top:12px}
+.modal button{
+  font-family:var(--mono);font-size:11px;padding:6px 12px;border-radius:4px;
+  border:1px solid var(--line-2);background:transparent;color:var(--text);
+  cursor:pointer;transition:all .15s;
+}
+.modal button.primary{background:#238636;border-color:#3fb950;color:#fff}
+.modal button.primary:hover{background:#2ea043}
+.modal button:hover{border-color:#58a6ff}
+.modal .hint{
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+  background:#0d1117;padding:7px 9px;border-radius:4px;
+  border-left:2px solid var(--field-edge);
+}
+</style>
+</head>
+<body>
+
+<div id="app-layout">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- HÀNG TRÊN — CLOCK TREE                                 -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="panel-clock">
+    <h2>STM32 Clock Tree — Enable Bits</h2>
+    <p class="hint">
+      <b>Click</b> khối nguồn để Bật/Tắt · Click MUX để đổi kênh ·
+      <b style="color:#1565c0">Clock tree tự đồng bộ khi thay đổi register bên phải.</b>
+    </p>
+
+    <div class="control-panel" id="status-panel">
+      <span>HSI: <b id="s-hsi" class="on">ON</b></span>
+      <span>HSE: <b id="s-hse" class="off">OFF</b></span>
+      <span>LSI: <b id="s-lsi" class="off">OFF</b></span>
+      <span>LSE: <b id="s-lse" class="off">OFF</b></span>
+      <span>PLL: <b id="s-pll" class="off">OFF</b></span>
+      <span>PLLI2S: <b id="s-plli2s" class="off">OFF</b></span>
+      <span>SW = <b id="s-sw">HSI</b></span>
+      <span>RTCSEL = <b id="s-rtc">-</b></span>
+      <span>I2SSRC = <b id="s-i2s">PLLI2S</b></span>
+      <span>PLLSRC = <b id="s-pllsrc">HSI</b></span>
+      <span>MCO1 = <b id="s-mco1" class="off">OFF</b></span>
+      <span>MCO2 = <b id="s-mco2" class="off">OFF</b></span>
+      <span>HCLK_EN: <b id="s-hclkEn" class="off">OFF</b></span>
+      <span>APB_EN: <b id="s-apbEn" class="off">OFF</b></span>
+      <span>APBT_EN: <b id="s-apbTEn" class="off">OFF</b></span>
+      <span>PLL48_EN: <b id="s-pll48En" class="off">OFF</b></span>
+      <span>I2S_EN: <b id="s-i2sEn" class="off">OFF</b></span>
+    </div>
+
+    <div class="canvas-container" id="svg-container">
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- PASTE SVG HERE                                                  -->
+      <!-- Mở stm32_clock_tree_v7.html → tìm thẻ <svg ...> đến </svg>    -->
+      <!-- Copy toàn bộ → paste vào đây, xoá placeholder div bên dưới    -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+        <div id="svg-placeholder" style="min-height:580px;display:flex;align-items:center;justify-content:center;color:#7d8590">Loading clock tree...</div>
+
+    </div>
+
+    <div class="ct-legend" style="margin-top:8px">
+      <span><span class="swatch" style="background:#e8f5e9;border-color:#2e7d32"></span>Nguồn ON</span>
+      <span><span class="swatch" style="background:#ffe0b2;border-color:#e65100"></span>AND gate thông</span>
+      <span><span class="swatch" style="background:#bbdefb;border-color:#1565c0"></span>Enable bit ON</span>
+      <span><span class="dot"></span>Dây có xung</span>
+      <span style="color:#d32f2f;font-weight:bold">▮ Nhãn nhấp nháy</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- HÀNG DƯỚI — REGISTER DEBUGGER                          -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div id="panel-regs">
+
+    <div class="app-header">
+      <div>
+        <h1 class="app-title">STM32F411RE <span class="accent">·</span> RCC Registers</h1>
+        <p class="app-sub">Reset &amp; Clock Control · RM0383 Rev 3</p>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-box legend-r"></div>R</div>
+        <div class="legend-item"><div class="legend-box legend-rw"></div>RW</div>
+        <div class="legend-item"><div class="legend-box legend-w"></div>W</div>
+        <div class="legend-item"><div class="legend-box legend-on"></div>=1</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button id="btn-reset-all">&#8635; Reset All</button>
+      <button id="btn-export">&#8679; Export JSON</button>
+      <button id="btn-read-all">&#8681; Read Board</button>
+      <button id="btn-rst-diff">&#8853; Reset Diff</button>
+      <div class="spacer"></div>
+      <div class="summary" id="summary"></div>
+    </div>
+
+    <div class="live-bar">
+      <div class="ws-dot" id="ws-dot"></div>
+      <span class="ws-label" id="ws-label">WebSocket</span>
+      <span class="ws-msg" id="ws-msg">Đang kết nối ws://localhost:8765 ...</span>
+      <div class="ws-poll">
+        <div class="poll-ring" id="poll-ring"></div>
+        <span id="poll-label">Poll: 500ms</span>
+      </div>
+      <button class="ws-btn" id="ws-reconnect-btn">Reconnect</button>
+    </div>
+
+    <div id="dashboard"></div>
+
+  </div>
+</div>
+
+<!-- ── FIELD EDITOR MODAL ── -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h3 id="m-field">FIELD</h3>
+    <p class="sub" id="m-desc"></p>
+    <div class="hint" id="m-hint"></div>
+    <div class="row" style="margin-top:12px">
+      <label>Hex</label><input type="text" id="m-hex"/>
+    </div>
+    <div class="row">
+      <label>Dec</label><input type="text" id="m-dec"/>
+    </div>
+    <div class="row">
+      <label>Binary</label><input type="text" id="m-bin"/>
+    </div>
+    <div class="actions">
+      <button id="m-cancel">Cancel</button>
+      <button class="primary" id="m-apply">Apply</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   CLOCK TREE — IDs & MAPPINGS  (prefix từ draw.io export)
+   ================================================================ */
+const PREFIX   = "Dm9r0YEqOBQMHSZwtswh-";
+const PREFIX_2  = "ny0E0szHMuGVgGMu_XXu-";
+const PREFIX_2_IDS = new Set([9, 10]);
+function getPrefix(num) {
+  return PREFIX_2_IDS.has(Number(num)) ? PREFIX_2 : PREFIX;
+}
+
+const UI = {
+  lsi:PREFIX+"68", lse:PREFIX+"22", hsi:PREFIX+"93", hse:PREFIX+"28",
+  pll:PREFIX+"45", plli2s:PREFIX+"31",
+  iwdgEn:PREFIX+"73", rtcEn:PREFIX+"83",
+  sw:PREFIX+"130", rtcSel:PREFIX+"77", i2sSrc:PREFIX+"122",
+  hclkEnBox:PREFIX+"149", apbEnBox:PREFIX+"165", apbTEnBox:PREFIX_2+"10",
+  pll48EnBox:PREFIX+"177", i2sEnBox:PREFIX+"183",
+  txtSysclk:PREFIX+"141", txtHclk:PREFIX+"148", txtApb:PREFIX+"172",
+  txtApbT:PREFIX+"173", txt48:PREFIX+"180", txtI2S:PREFIX+"185",
+  txtIwdg:PREFIX+"75",  txtRtc:PREFIX+"87",
+  txtFclk:PREFIX+"158", txtCortex:PREFIX+"157",
+};
+const Gates = {
+  iwdg:PREFIX+"69", rtc:PREFIX+"81", hclk:PREFIX+"146",
+  apb:PREFIX+"168", apbT:PREFIX+"170", pll48:PREFIX+"176", i2s:PREFIX+"182",
+};
+const Dividers = {
+  hse_rtc_div:   PREFIX+"97",
+  mco1_div:      PREFIX+"27",
+  mco2_div:      PREFIX+"25",
+  ahb_presc:     PREFIX+"143",
+  apb_presc:     PREFIX+"161",
+  apb_timer_mul: PREFIX+"163",
+  cortex_div8:   PREFIX+"155",
+  pll_m:    PREFIX+"111",
+  pll_p:    PREFIX+"52",
+  pll_q:    PREFIX+"54",
+  pll_r:    PREFIX+"55",
+  plli2s_m: PREFIX+"117",
+  plli2s_p: PREFIX+"39",
+  plli2s_q: PREFIX+"41",
+  plli2s_r: PREFIX+"42",
+};
+const Wires = {
+  lsi_to_iwdg:[70], iwdg_to_gate:[72], iwdg_out:[86], lsi_to_rtc:[78],
+  lse_trunk:[23,24], lse_to_rtc:[88], lse_to_mco:[91],
+  hse_osc:[29,30], hse_to_mco:[65,101], hse_to_sw:[134], hse_to_rtc:[96,98],
+  hse_to_pllsrc_mux:[116], hse_to_pll_m:[115],
+  hsi_to_mco:[94], hsi_to_pllsrc_mux:[92], hsi_to_pll_m:[112],
+  rtcsel_to_gate:[76,79], rtcen_to_gate:[82], rtc_out:[85],
+  mco1_mux_to_div:[60], mco1_to_pin:[67], mco2_mux_to_div:[58], mco2_to_pin:[26],
+  sysclk_to_mco:[63], pll_to_mco:[66], plli2s_to_mco:[64],
+  pll_vco_loop:[46,48], pll_xn_out:[47,51,53,56],
+  pll_m_to_vco:[110,112], pll_to_pllclk:[137],
+  plli2s_vco_loop:[32,34], plli2s_xn_out:[33,38,40,43], plli2s_m:[35,118],
+  plli2s_to_i2ssrc:[123], i2s_ext:[124], i2ssrc_internal:[120],
+  i2s_to_gate_in:[121], i2s_to_gate_en:[184], i2s_out:[181],
+  sw_hsi_in:[133], sw_hse_in_seg:[135], sw_pll_in:[137], sw_out:[128,129],
+  sysclk_to_ahb:[142], ahb_to_gate_in:[144], ahb_to_gate_en:[145],
+  cortex_div8:[147,150,152,154], fclk:[159],
+  ahb_to_apb:[160,162],
+  apb_clock_to_gate_in:[9], apb_clock_to_gate_en:[167], apb_clocks_out:[169],
+  apb_timer_to_gate_in:[171], apb_timer_to_gate_en:[169],
+  pll48_to_gate_in:[178], pll48_to_gate_en:[174], pll48_out:[175],
+};
+
+/* ── Clock tree state — driven by syncClockFromRegisters() ── */
+const states = {
+  lsi:false, lse:false, hsi:true, hse:false,
+  pll:false, plli2s:false,
+  iwdgEn:false, rtcEn:false,
+  hclkEn:false, apbEn:false, apbTEn:false, pll48En:false, i2sEn:false,
+};
+const mux = { sw:'HSI', rtc:null, i2s:'PLLI2S', mco1:'OFF', mco2:'OFF', pllsrc:'HSI' };
+
+/* ================================================================
+   TREE → REGISTER NAVIGATION MAP
+   Click SVG block → scroll + highlight register bit (không auto-change)
+   regKey = 'gi-ri' theo thứ tự trong mảng RCC[]
+   ================================================================ */
+const TREE_NAV = {
+  hsi:      { regKey:'0-0', msb:0,  lsb:0,  hint:'HSION [bit 0] = 1  →  Bật HSI 16MHz nội' },
+  hse:      { regKey:'0-0', msb:16, lsb:16, hint:'HSEON [bit 16] = 1  →  Bật HSE ngoại (đợi HSERDY=1)' },
+  pll:      { regKey:'0-0', msb:24, lsb:24, hint:'PLLON [bit 24] = 1  →  Bật PLL (cấu hình PLLCFGR trước!)' },
+  plli2s:   { regKey:'0-0', msb:27, lsb:27, hint:'PLLI2SON [bit 27] = 1  →  Bật PLLI2S cho I2S clock' },
+  lsi:      { regKey:'4-1', msb:0,  lsb:0,  hint:'LSION [bit 0] = 1  →  Bật LSI ~32kHz nội' },
+  lse:      { regKey:'4-0', msb:0,  lsb:0,  hint:'LSEON [bit 0] = 1  →  Bật LSE 32.768kHz ngoại' },
+  rtcEn:    { regKey:'4-0', msb:15, lsb:15, hint:'RTCEN [bit 15] = 1  →  Bật RTC clock' },
+  iwdgEn:   { regKey:'4-1', msb:0,  lsb:0,  hint:'IWDG cần LSI: bật LSION [bit 0] → sau đó cấu hình IWDG_KR (ngoài RCC)' },
+  sw:       { regKey:'0-2', msb:1,  lsb:0,  hint:'SW[1:0]: 00=HSI  01=HSE  10=PLL  →  Chọn nguồn SYSCLK' },
+  rtcSel:   { regKey:'4-0', msb:9,  lsb:8,  hint:'RTCSEL[9:8]: 01=LSE  10=LSI  11=HSE/RTCPRE  →  Chọn nguồn RTC' },
+  i2sSrc:   { regKey:'0-2', msb:23, lsb:23, hint:'I2SSRC [bit 23]: 0=PLLI2S  1=I2S_CKIN  →  Chọn nguồn I2S' },
+  hclkEnBox:  { regKey:'2-0', msb:7,  lsb:0,  hint:'RCC_AHB1ENR  →  Bật clock GPIO / DMA / CRC' },
+  apbEnBox:   { regKey:'2-2', msb:28, lsb:0,  hint:'RCC_APB1ENR  →  Bật clock APB1 peripherals' },
+  apbTEnBox:  { regKey:'2-3', msb:18, lsb:0,  hint:'RCC_APB2ENR  →  Bật clock APB2 peripherals' },
+  pll48EnBox: { regKey:'2-1', msb:7,  lsb:7,  hint:'OTGFSEN [bit 7] = 1  →  Bật USB OTG FS clock (dùng 48MHz từ PLL/Q)' },
+  i2sEnBox:   { regKey:'2-2', msb:15, lsb:14, hint:'SPI3EN [bit 15] / SPI2EN [bit 14]  →  Bật SPI clock nhận I2S từ PLLI2S' },
+};
+const TREE_NAV_MUX = {
+  [PREFIX+'61']:  { regKey:'0-2', msb:22, lsb:21, hint:'MCO1[22:21]: 00=HSI  01=LSE  10=HSE  11=PLL' },
+  [PREFIX+'59']:  { regKey:'0-2', msb:31, lsb:30, hint:'MCO2[31:30]: 00=SYSCLK  01=PLLI2S  10=HSE  11=PLL' },
+  [PREFIX+'113']: { regKey:'0-1', msb:22, lsb:22, hint:'PLLSRC [bit 22]: 0=HSI  1=HSE  →  Chọn nguồn PLL' },
+};
+/* Divider cells → register field navigation */
+const TREE_NAV_DIV = {
+  [Dividers.hse_rtc_div]:   { regKey:'0-2', msb:20, lsb:16, hint:'RTCPRE[20:16]: chia HSE cho RTC (2-31). RTC_CLK = HSE / RTCPRE' },
+  [Dividers.mco1_div]:      { regKey:'0-2', msb:26, lsb:24, hint:'MCO1PRE[26:24]: MCO1 prescaler. 0xx=/1, 100=/2, 101=/3, 110=/4, 111=/5' },
+  [Dividers.mco2_div]:      { regKey:'0-2', msb:29, lsb:27, hint:'MCO2PRE[29:27]: MCO2 prescaler. 0xx=/1, 100=/2, 101=/3, 110=/4, 111=/5' },
+  [Dividers.ahb_presc]:     { regKey:'0-2', msb:7,  lsb:4,  hint:'HPRE[7:4]: AHB prescaler. HCLK = SYSCLK/N (0xxx=/1, 1000=/2...1111=/512)' },
+  [Dividers.apb_presc]:     { regKey:'0-2', msb:12, lsb:10, hint:'PPRE1[12:10]: APB1 (max 50MHz) | PPRE2[15:13]: APB2 (max 100MHz). 0xx=/1, 100=/2..111=/16' },
+  [Dividers.apb_timer_mul]: { regKey:'0-2', msb:12, lsb:10, hint:'Timer CLK = APBx×1 nếu PPRE=1, APBx×2 nếu PPRE>1 → xem PPRE1[12:10]' },
+  [Dividers.cortex_div8]:   { regKey:'0-2', msb:7,  lsb:4,  hint:'Cortex SysTick = HCLK/8 (cố định, không cấu hình được) → xem HPRE[7:4]' },
+  [Dividers.pll_m]:         { regKey:'0-1', msb:5,  lsb:0,  hint:'PLLM[5:0]: input divider (2-63). VCO_input = Fsrc/M → target 1-2 MHz' },
+  [Dividers.pll_p]:         { regKey:'0-1', msb:17, lsb:16, hint:'PLLP[17:16]: SYSCLK divider. 00=/2, 01=/4, 10=/6, 11=/8. SYSCLK = VCO/P' },
+  [Dividers.pll_q]:         { regKey:'0-1', msb:27, lsb:24, hint:'PLLQ[27:24]: 48MHz output divider (2-15). 48MHz = VCO/Q → USB OTG / SDIO / RNG' },
+  [Dividers.pll_r]:         { regKey:'0-1', msb:27, lsb:24, hint:'PLLR: không dùng trên F411 → xem PLLQ[27:24] cho 48MHz output' },
+  [Dividers.plli2s_m]:      { regKey:'0-1', msb:5,  lsb:0,  hint:'PLLM[5:0]: PLLI2S dùng chung /M với PLL. VCO_input = Fsrc/M' },
+  [Dividers.plli2s_p]:      { regKey:'5-1', msb:30, lsb:28, hint:'PLLI2SR[30:28]: I2S clock output divider (2-7). I2S_CLK = PLLI2S_VCO / R' },
+  [Dividers.plli2s_q]:      { regKey:'5-1', msb:14, lsb:6,  hint:'PLLI2SN[14:6]: PLLI2S multiplier (50-432). VCO = (Fsrc/M) × N' },
+  [Dividers.plli2s_r]:      { regKey:'5-1', msb:30, lsb:28, hint:'PLLI2SR[30:28]: I2S clock output divider (2-7). I2S_CLK = PLLI2S_VCO / R' },
+};
+
+/* ── Navigation helpers ── */
+let _navTimer = null;
+
+function showNavToast(title, hint) {
+  const old = document.getElementById('nav-toast');
+  if (old) old.remove();
+  clearTimeout(_navTimer);
+  const el = document.createElement('div');
+  el.id = 'nav-toast'; el.className = 'nav-toast';
+  el.innerHTML = `<b>→ ${title}</b><br><span style="font-size:10px;opacity:.85">${hint}</span>`;
+  document.body.appendChild(el);
+  _navTimer = setTimeout(() => el.remove(), 3800);
+}
+
+function navigateToField(regKey, msb, lsb, hint) {
+  const regEl = document.getElementById(`reg-${regKey}`);
+  if (!regEl) return;
+  const [gi, ri] = regKey.split('-').map(Number);
+  const regName = RCC[gi].regs[ri].name;
+  const field = RCC[gi].regs[ri].fields.find(f => f.msb === msb && f.lsb === lsb)
+             || RCC[gi].regs[ri].fields.find(f => f.lsb <= lsb && f.msb >= msb);
+  const fname = field ? field.name : `bits ${msb}:${lsb}`;
+
+  /* 1. Scroll cột phải đến register */
+  regEl.scrollIntoView({ behavior:'smooth', block:'center' });
+
+  /* 2. Highlight sau khi scroll xong */
+  setTimeout(() => {
+    if (msb - lsb <= 4) {
+      /* Highlight từng bit cell */
+      for (let b = lsb; b <= msb; b++) {
+        const box = regEl.querySelector(`.bit-box[data-bit="${b}"]`);
+        if (box) {
+          box.classList.remove('nav-highlight');
+          void box.offsetWidth;
+          box.classList.add('nav-highlight');
+          setTimeout(() => box.classList.remove('nav-highlight'), 2000);
+        }
+      }
+    } else {
+      /* Nhiều bit → highlight hex value của register */
+      const hexEl = document.getElementById(`hex-${regKey}`);
+      if (hexEl) {
+        hexEl.classList.remove('nav-highlight');
+        void hexEl.offsetWidth;
+        hexEl.classList.add('nav-highlight');
+        setTimeout(() => hexEl.classList.remove('nav-highlight'), 2000);
+      }
+    }
+  }, 380);
+
+  /* 3. Toast notification */
+  showNavToast(`${regName} · ${fname}`, hint);
+}
+
+/* ================================================================
+   RCC REGISTER DEFINITIONS — STM32F411RE — RM0383 Rev 3
+   gi-ri index (dùng cho syncClockFromRegisters):
+     RCC_CR=0-0  RCC_PLLCFGR=0-1  RCC_CFGR=0-2
+     RCC_BDCR=4-0  RCC_CSR=4-1
+   ================================================================ */
+const RCC = [
+{ group:"Core Clock", regs:[
+  { name:"RCC_CR", offset:"0x00", desc:"Clock control register", reset:0x00000083,
+    fields:[
+      {msb:31,lsb:28,name:"Reserved",  access:"R", desc:"Reserved, always read as 0"},
+      {msb:27,lsb:27,name:"PLLI2SON",  access:"RW",desc:"PLLI2S enable"},
+      {msb:26,lsb:26,name:"PLLI2SRDY", access:"R", desc:"PLLI2S clock ready flag"},
+      {msb:25,lsb:25,name:"PLLRDY",    access:"R", desc:"Main PLL clock ready flag"},
+      {msb:24,lsb:24,name:"PLLON",     access:"RW",desc:"Main PLL enable"},
+      {msb:23,lsb:20,name:"Reserved",  access:"R", desc:"Reserved"},
+      {msb:19,lsb:19,name:"CSSON",     access:"RW",desc:"Clock security system enable"},
+      {msb:18,lsb:18,name:"HSEBYP",    access:"RW",desc:"HSE clock bypass"},
+      {msb:17,lsb:17,name:"HSERDY",    access:"R", desc:"HSE clock ready flag"},
+      {msb:16,lsb:16,name:"HSEON",     access:"RW",desc:"HSE clock enable"},
+      {msb:15,lsb:8, name:"HSICAL",    access:"R", desc:"HSI clock calibration (factory-trimmed, non-zero after reset)"},
+      {msb:7, lsb:3, name:"HSITRIM",   access:"RW",desc:"HSI clock trimming (default 0x10)"},
+      {msb:2, lsb:2, name:"Reserved",  access:"R", desc:"Reserved"},
+      {msb:1, lsb:1, name:"HSIRDY",    access:"R", desc:"HSI clock ready flag"},
+      {msb:0, lsb:0, name:"HSION",     access:"RW",desc:"HSI clock enable"},
+    ]},
+  { name:"RCC_PLLCFGR", offset:"0x04", desc:"PLL configuration register", reset:0x24003010,
+    fields:[
+      {msb:31,lsb:28,name:"Reserved",access:"R", desc:"Reserved"},
+      {msb:27,lsb:24,name:"PLLQ",    access:"RW",desc:"Division factor for USB OTG FS, SDIO (2-15)"},
+      {msb:23,lsb:23,name:"Reserved",access:"R", desc:"Reserved"},
+      {msb:22,lsb:22,name:"PLLSRC",  access:"RW",desc:"PLL source: 0=HSI, 1=HSE",enum:{0:"HSI",1:"HSE"}},
+      {msb:21,lsb:18,name:"Reserved",access:"R", desc:"Reserved"},
+      {msb:17,lsb:16,name:"PLLP",    access:"RW",desc:"Main PLL div for SYSCLK",enum:{0:"/2",1:"/4",2:"/6",3:"/8"}},
+      {msb:15,lsb:15,name:"Reserved",access:"R", desc:"Reserved"},
+      {msb:14,lsb:6, name:"PLLN",    access:"RW",desc:"Main PLL multiplication factor (50-432)"},
+      {msb:5, lsb:0, name:"PLLM",    access:"RW",desc:"Division factor for input clock (2-63)"},
+    ]},
+  { name:"RCC_CFGR", offset:"0x08", desc:"Clock configuration register", reset:0x00000000,
+    fields:[
+      {msb:31,lsb:30,name:"MCO2",   access:"RW",desc:"MCO2: 00=SYSCLK,01=PLLI2S,10=HSE,11=PLL",enum:{0:"SYSCLK",1:"PLLI2S",2:"HSE",3:"PLL"}},
+      {msb:29,lsb:27,name:"MCO2PRE",access:"RW",desc:"MCO2 prescaler: 0xx=/1,100=/2,101=/3,110=/4,111=/5"},
+      {msb:26,lsb:24,name:"MCO1PRE",access:"RW",desc:"MCO1 prescaler: 0xx=/1,100=/2,101=/3,110=/4,111=/5"},
+      {msb:23,lsb:23,name:"I2SSRC", access:"RW",desc:"I2S source: 0=PLLI2S, 1=I2S_CKIN",enum:{0:"PLLI2S",1:"I2S_CKIN"}},
+      {msb:22,lsb:21,name:"MCO1",   access:"RW",desc:"MCO1: 00=HSI,01=LSE,10=HSE,11=PLL",enum:{0:"HSI",1:"LSE",2:"HSE",3:"PLL"}},
+      {msb:20,lsb:16,name:"RTCPRE", access:"RW",desc:"HSE division factor for RTC clock (2-31)"},
+      {msb:15,lsb:13,name:"PPRE2",  access:"RW",desc:"APB2 prescaler: 0xx=/1,100=/2,101=/4,110=/8,111=/16"},
+      {msb:12,lsb:10,name:"PPRE1",  access:"RW",desc:"APB1 prescaler: 0xx=/1,100=/2,101=/4,110=/8,111=/16"},
+      {msb:9, lsb:8, name:"Reserved",access:"R",desc:"Reserved"},
+      {msb:7, lsb:4, name:"HPRE",   access:"RW",desc:"AHB prescaler: 0xxx=/1,1000=/2,...,1111=/512"},
+      {msb:3, lsb:2, name:"SWS",    access:"R", desc:"Clock switch status",enum:{0:"HSI",1:"HSE",2:"PLL",3:"-"}},
+      {msb:1, lsb:0, name:"SW",     access:"RW",desc:"System clock switch",enum:{0:"HSI",1:"HSE",2:"PLL",3:"-"}},
+    ]},
+  { name:"RCC_CIR", offset:"0x0C", desc:"Clock interrupt register", reset:0x00000000,
+    fields:[
+      {msb:31,lsb:24,name:"Reserved",   access:"R",desc:"Reserved"},
+      {msb:23,lsb:23,name:"CSSC",       access:"W",desc:"CSS interrupt clear"},
+      {msb:22,lsb:22,name:"Reserved",   access:"R",desc:"Reserved"},
+      {msb:21,lsb:21,name:"PLLI2SRDYC", access:"W",desc:"PLLI2S ready interrupt clear"},
+      {msb:20,lsb:20,name:"PLLRDYC",    access:"W",desc:"PLL ready interrupt clear"},
+      {msb:19,lsb:19,name:"HSERDYC",    access:"W",desc:"HSE ready interrupt clear"},
+      {msb:18,lsb:18,name:"HSIRDYC",    access:"W",desc:"HSI ready interrupt clear"},
+      {msb:17,lsb:17,name:"LSERDYC",    access:"W",desc:"LSE ready interrupt clear"},
+      {msb:16,lsb:16,name:"LSIRDYC",    access:"W",desc:"LSI ready interrupt clear"},
+      {msb:15,lsb:14,name:"Reserved",   access:"R",desc:"Reserved"},
+      {msb:13,lsb:13,name:"PLLI2SRDYIE",access:"RW",desc:"PLLI2S ready interrupt enable"},
+      {msb:12,lsb:12,name:"PLLRDYIE",   access:"RW",desc:"PLL ready interrupt enable"},
+      {msb:11,lsb:11,name:"HSERDYIE",   access:"RW",desc:"HSE ready interrupt enable"},
+      {msb:10,lsb:10,name:"HSIRDYIE",   access:"RW",desc:"HSI ready interrupt enable"},
+      {msb:9, lsb:9, name:"LSERDYIE",   access:"RW",desc:"LSE ready interrupt enable"},
+      {msb:8, lsb:8, name:"LSIRDYIE",   access:"RW",desc:"LSI ready interrupt enable"},
+      {msb:7, lsb:7, name:"CSSF",       access:"R",desc:"CSS interrupt flag"},
+      {msb:6, lsb:6, name:"PLLI2SRDYF", access:"R",desc:"PLLI2S ready interrupt flag"},
+      {msb:5, lsb:5, name:"PLLRDYF",    access:"R",desc:"PLL ready interrupt flag"},
+      {msb:4, lsb:4, name:"HSERDYF",    access:"R",desc:"HSE ready interrupt flag"},
+      {msb:3, lsb:3, name:"HSIRDYF",    access:"R",desc:"HSI ready interrupt flag"},
+      {msb:2, lsb:2, name:"LSERDYF",    access:"R",desc:"LSE ready interrupt flag"},
+      {msb:1, lsb:1, name:"LSIRDYF",    access:"R",desc:"LSI ready interrupt flag"},
+      {msb:0, lsb:0, name:"Reserved",   access:"R",desc:"Reserved"},
+    ]},
+]},
+{ group:"Reset Registers", regs:[
+  { name:"RCC_AHB1RSTR",offset:"0x10",desc:"AHB1 peripheral reset register",reset:0x00000000,fields:[
+    {msb:31,lsb:23,name:"Reserved",access:"R",desc:"Reserved"},{msb:22,lsb:22,name:"DMA2RST",access:"RW",desc:"DMA2 reset"},{msb:21,lsb:21,name:"DMA1RST",access:"RW",desc:"DMA1 reset"},{msb:20,lsb:13,name:"Reserved",access:"R",desc:"Reserved"},{msb:12,lsb:12,name:"CRCRST",access:"RW",desc:"CRC reset"},{msb:11,lsb:8,name:"Reserved",access:"R",desc:"Reserved"},{msb:7,lsb:7,name:"GPIOHRST",access:"RW",desc:"IO port H reset"},{msb:6,lsb:5,name:"Reserved",access:"R",desc:"Reserved"},{msb:4,lsb:4,name:"GPIOERST",access:"RW",desc:"IO port E reset"},{msb:3,lsb:3,name:"GPIODRST",access:"RW",desc:"IO port D reset"},{msb:2,lsb:2,name:"GPIOCRST",access:"RW",desc:"IO port C reset"},{msb:1,lsb:1,name:"GPIOBRST",access:"RW",desc:"IO port B reset"},{msb:0,lsb:0,name:"GPIOARST",access:"RW",desc:"IO port A reset"},
+  ]},
+  { name:"RCC_AHB2RSTR",offset:"0x14",desc:"AHB2 peripheral reset register",reset:0x00000000,fields:[
+    {msb:31,lsb:8,name:"Reserved",access:"R",desc:"Reserved"},{msb:7,lsb:7,name:"OTGFSRST",access:"RW",desc:"USB OTG FS reset"},{msb:6,lsb:0,name:"Reserved",access:"R",desc:"Reserved"},
+  ]},
+  { name:"RCC_APB1RSTR",offset:"0x20",desc:"APB1 peripheral reset register",reset:0x00000000,fields:[
+    {msb:31,lsb:29,name:"Reserved",access:"R",desc:"Reserved"},{msb:28,lsb:28,name:"PWRRST",access:"RW",desc:"Power interface reset"},{msb:27,lsb:24,name:"Reserved",access:"R",desc:"Reserved"},{msb:23,lsb:23,name:"I2C3RST",access:"RW",desc:"I2C3 reset"},{msb:22,lsb:22,name:"I2C2RST",access:"RW",desc:"I2C2 reset"},{msb:21,lsb:21,name:"I2C1RST",access:"RW",desc:"I2C1 reset"},{msb:20,lsb:18,name:"Reserved",access:"R",desc:"Reserved"},{msb:17,lsb:17,name:"USART2RST",access:"RW",desc:"USART2 reset"},{msb:16,lsb:16,name:"Reserved",access:"R",desc:"Reserved"},{msb:15,lsb:15,name:"SPI3RST",access:"RW",desc:"SPI3 reset"},{msb:14,lsb:14,name:"SPI2RST",access:"RW",desc:"SPI2 reset"},{msb:13,lsb:12,name:"Reserved",access:"R",desc:"Reserved"},{msb:11,lsb:11,name:"WWDGRST",access:"RW",desc:"Window watchdog reset"},{msb:10,lsb:4,name:"Reserved",access:"R",desc:"Reserved"},{msb:3,lsb:3,name:"TIM5RST",access:"RW",desc:"TIM5 reset"},{msb:2,lsb:2,name:"TIM4RST",access:"RW",desc:"TIM4 reset"},{msb:1,lsb:1,name:"TIM3RST",access:"RW",desc:"TIM3 reset"},{msb:0,lsb:0,name:"TIM2RST",access:"RW",desc:"TIM2 reset"},
+  ]},
+  { name:"RCC_APB2RSTR",offset:"0x24",desc:"APB2 peripheral reset register",reset:0x00000000,fields:[
+    {msb:31,lsb:19,name:"Reserved",access:"R",desc:"Reserved"},{msb:18,lsb:18,name:"TIM11RST",access:"RW",desc:"TIM11 reset"},{msb:17,lsb:17,name:"TIM10RST",access:"RW",desc:"TIM10 reset"},{msb:16,lsb:16,name:"TIM9RST",access:"RW",desc:"TIM9 reset"},{msb:15,lsb:15,name:"Reserved",access:"R",desc:"Reserved"},{msb:14,lsb:14,name:"SYSCFGRST",access:"RW",desc:"SYSCFG reset"},{msb:13,lsb:13,name:"SPI4RST",access:"RW",desc:"SPI4 reset"},{msb:12,lsb:12,name:"SPI1RST",access:"RW",desc:"SPI1 reset"},{msb:11,lsb:11,name:"SDIORST",access:"RW",desc:"SDIO reset"},{msb:10,lsb:9,name:"Reserved",access:"R",desc:"Reserved"},{msb:8,lsb:8,name:"ADC1RST",access:"RW",desc:"ADC1 reset"},{msb:7,lsb:6,name:"Reserved",access:"R",desc:"Reserved"},{msb:5,lsb:5,name:"USART6RST",access:"RW",desc:"USART6 reset"},{msb:4,lsb:4,name:"USART1RST",access:"RW",desc:"USART1 reset"},{msb:3,lsb:1,name:"Reserved",access:"R",desc:"Reserved"},{msb:0,lsb:0,name:"TIM1RST",access:"RW",desc:"TIM1 reset"},
+  ]},
+]},
+{ group:"Clock Enable", regs:[
+  { name:"RCC_AHB1ENR",offset:"0x30",desc:"AHB1 peripheral clock enable",reset:0x00100000,fields:[
+    {msb:31,lsb:23,name:"Reserved",access:"R",desc:"Reserved"},{msb:22,lsb:22,name:"DMA2EN",access:"RW",desc:"DMA2 clock enable"},{msb:21,lsb:21,name:"DMA1EN",access:"RW",desc:"DMA1 clock enable"},{msb:20,lsb:20,name:"Reserved",access:"R",desc:"Reserved (reset value 1)"},{msb:19,lsb:13,name:"Reserved",access:"R",desc:"Reserved"},{msb:12,lsb:12,name:"CRCEN",access:"RW",desc:"CRC clock enable"},{msb:11,lsb:8,name:"Reserved",access:"R",desc:"Reserved"},{msb:7,lsb:7,name:"GPIOHEN",access:"RW",desc:"IO port H clock enable"},{msb:6,lsb:5,name:"Reserved",access:"R",desc:"Reserved"},{msb:4,lsb:4,name:"GPIOEEN",access:"RW",desc:"IO port E clock enable"},{msb:3,lsb:3,name:"GPIODEN",access:"RW",desc:"IO port D clock enable"},{msb:2,lsb:2,name:"GPIOCEN",access:"RW",desc:"IO port C clock enable"},{msb:1,lsb:1,name:"GPIOBEN",access:"RW",desc:"IO port B clock enable"},{msb:0,lsb:0,name:"GPIOAEN",access:"RW",desc:"IO port A clock enable"},
+  ]},
+  { name:"RCC_AHB2ENR",offset:"0x34",desc:"AHB2 peripheral clock enable",reset:0x00000000,fields:[
+    {msb:31,lsb:8,name:"Reserved",access:"R",desc:"Reserved"},{msb:7,lsb:7,name:"OTGFSEN",access:"RW",desc:"USB OTG FS clock enable"},{msb:6,lsb:0,name:"Reserved",access:"R",desc:"Reserved"},
+  ]},
+  { name:"RCC_APB1ENR",offset:"0x40",desc:"APB1 peripheral clock enable",reset:0x00000000,fields:[
+    {msb:31,lsb:29,name:"Reserved",access:"R",desc:"Reserved"},{msb:28,lsb:28,name:"PWREN",access:"RW",desc:"Power interface clock enable"},{msb:27,lsb:24,name:"Reserved",access:"R",desc:"Reserved"},{msb:23,lsb:23,name:"I2C3EN",access:"RW",desc:"I2C3 clock enable"},{msb:22,lsb:22,name:"I2C2EN",access:"RW",desc:"I2C2 clock enable"},{msb:21,lsb:21,name:"I2C1EN",access:"RW",desc:"I2C1 clock enable"},{msb:20,lsb:18,name:"Reserved",access:"R",desc:"Reserved"},{msb:17,lsb:17,name:"USART2EN",access:"RW",desc:"USART2 clock enable"},{msb:16,lsb:16,name:"Reserved",access:"R",desc:"Reserved"},{msb:15,lsb:15,name:"SPI3EN",access:"RW",desc:"SPI3 clock enable"},{msb:14,lsb:14,name:"SPI2EN",access:"RW",desc:"SPI2 clock enable"},{msb:13,lsb:12,name:"Reserved",access:"R",desc:"Reserved"},{msb:11,lsb:11,name:"WWDGEN",access:"RW",desc:"Window watchdog clock enable"},{msb:10,lsb:4,name:"Reserved",access:"R",desc:"Reserved"},{msb:3,lsb:3,name:"TIM5EN",access:"RW",desc:"TIM5 clock enable"},{msb:2,lsb:2,name:"TIM4EN",access:"RW",desc:"TIM4 clock enable"},{msb:1,lsb:1,name:"TIM3EN",access:"RW",desc:"TIM3 clock enable"},{msb:0,lsb:0,name:"TIM2EN",access:"RW",desc:"TIM2 clock enable"},
+  ]},
+  { name:"RCC_APB2ENR",offset:"0x44",desc:"APB2 peripheral clock enable",reset:0x00000000,fields:[
+    {msb:31,lsb:19,name:"Reserved",access:"R",desc:"Reserved"},{msb:18,lsb:18,name:"TIM11EN",access:"RW",desc:"TIM11 clock enable"},{msb:17,lsb:17,name:"TIM10EN",access:"RW",desc:"TIM10 clock enable"},{msb:16,lsb:16,name:"TIM9EN",access:"RW",desc:"TIM9 clock enable"},{msb:15,lsb:15,name:"Reserved",access:"R",desc:"Reserved"},{msb:14,lsb:14,name:"SYSCFGEN",access:"RW",desc:"SYSCFG clock enable"},{msb:13,lsb:13,name:"SPI4EN",access:"RW",desc:"SPI4 clock enable"},{msb:12,lsb:12,name:"SPI1EN",access:"RW",desc:"SPI1 clock enable"},{msb:11,lsb:11,name:"SDIOEN",access:"RW",desc:"SDIO clock enable"},{msb:10,lsb:9,name:"Reserved",access:"R",desc:"Reserved"},{msb:8,lsb:8,name:"ADC1EN",access:"RW",desc:"ADC1 clock enable"},{msb:7,lsb:6,name:"Reserved",access:"R",desc:"Reserved"},{msb:5,lsb:5,name:"USART6EN",access:"RW",desc:"USART6 clock enable"},{msb:4,lsb:4,name:"USART1EN",access:"RW",desc:"USART1 clock enable"},{msb:3,lsb:1,name:"Reserved",access:"R",desc:"Reserved"},{msb:0,lsb:0,name:"TIM1EN",access:"RW",desc:"TIM1 clock enable"},
+  ]},
+]},
+{ group:"Low-power Clock Enable", regs:[
+  { name:"RCC_AHB1LPENR",offset:"0x50",desc:"AHB1 LP clock enable",reset:0x0063109F,fields:[
+    {msb:31,lsb:23,name:"Reserved",access:"R",desc:"Reserved"},{msb:22,lsb:22,name:"DMA2LPEN",access:"RW",desc:"DMA2 sleep clock"},{msb:21,lsb:21,name:"DMA1LPEN",access:"RW",desc:"DMA1 sleep clock"},{msb:20,lsb:18,name:"Reserved",access:"R",desc:"Reserved"},{msb:17,lsb:17,name:"SRAM1LPEN",access:"RW",desc:"SRAM1 sleep clock"},{msb:16,lsb:16,name:"FLITFLPEN",access:"RW",desc:"Flash sleep clock"},{msb:15,lsb:13,name:"Reserved",access:"R",desc:"Reserved"},{msb:12,lsb:12,name:"CRCLPEN",access:"RW",desc:"CRC sleep clock"},{msb:11,lsb:8,name:"Reserved",access:"R",desc:"Reserved"},{msb:7,lsb:7,name:"GPIOHLPEN",access:"RW",desc:"Port H sleep clock"},{msb:6,lsb:5,name:"Reserved",access:"R",desc:"Reserved"},{msb:4,lsb:4,name:"GPIOELPEN",access:"RW",desc:"Port E sleep clock"},{msb:3,lsb:3,name:"GPIODLPEN",access:"RW",desc:"Port D sleep clock"},{msb:2,lsb:2,name:"GPIOCLPEN",access:"RW",desc:"Port C sleep clock"},{msb:1,lsb:1,name:"GPIOBLPEN",access:"RW",desc:"Port B sleep clock"},{msb:0,lsb:0,name:"GPIOALPEN",access:"RW",desc:"Port A sleep clock"},
+  ]},
+  { name:"RCC_AHB2LPENR",offset:"0x54",desc:"AHB2 LP clock enable",reset:0x00000080,fields:[
+    {msb:31,lsb:8,name:"Reserved",access:"R",desc:"Reserved"},{msb:7,lsb:7,name:"OTGFSLPEN",access:"RW",desc:"USB OTG FS sleep clock"},{msb:6,lsb:0,name:"Reserved",access:"R",desc:"Reserved"},
+  ]},
+  { name:"RCC_APB1LPENR",offset:"0x60",desc:"APB1 LP clock enable",reset:0x10E2C80F,fields:[
+    {msb:31,lsb:29,name:"Reserved",access:"R",desc:"Reserved"},{msb:28,lsb:28,name:"PWRLPEN",access:"RW",desc:"Power sleep clock"},{msb:27,lsb:24,name:"Reserved",access:"R",desc:"Reserved"},{msb:23,lsb:23,name:"I2C3LPEN",access:"RW",desc:"I2C3 sleep clock"},{msb:22,lsb:22,name:"I2C2LPEN",access:"RW",desc:"I2C2 sleep clock"},{msb:21,lsb:21,name:"I2C1LPEN",access:"RW",desc:"I2C1 sleep clock"},{msb:20,lsb:18,name:"Reserved",access:"R",desc:"Reserved"},{msb:17,lsb:17,name:"USART2LPEN",access:"RW",desc:"USART2 sleep clock"},{msb:16,lsb:16,name:"Reserved",access:"R",desc:"Reserved"},{msb:15,lsb:15,name:"SPI3LPEN",access:"RW",desc:"SPI3 sleep clock"},{msb:14,lsb:14,name:"SPI2LPEN",access:"RW",desc:"SPI2 sleep clock"},{msb:13,lsb:12,name:"Reserved",access:"R",desc:"Reserved"},{msb:11,lsb:11,name:"WWDGLPEN",access:"RW",desc:"WWDG sleep clock"},{msb:10,lsb:4,name:"Reserved",access:"R",desc:"Reserved"},{msb:3,lsb:3,name:"TIM5LPEN",access:"RW",desc:"TIM5 sleep clock"},{msb:2,lsb:2,name:"TIM4LPEN",access:"RW",desc:"TIM4 sleep clock"},{msb:1,lsb:1,name:"TIM3LPEN",access:"RW",desc:"TIM3 sleep clock"},{msb:0,lsb:0,name:"TIM2LPEN",access:"RW",desc:"TIM2 sleep clock"},
+  ]},
+  { name:"RCC_APB2LPENR",offset:"0x64",desc:"APB2 LP clock enable",reset:0x00077931,fields:[
+    {msb:31,lsb:19,name:"Reserved",access:"R",desc:"Reserved"},{msb:18,lsb:18,name:"TIM11LPEN",access:"RW",desc:"TIM11 sleep clock"},{msb:17,lsb:17,name:"TIM10LPEN",access:"RW",desc:"TIM10 sleep clock"},{msb:16,lsb:16,name:"TIM9LPEN",access:"RW",desc:"TIM9 sleep clock"},{msb:15,lsb:15,name:"Reserved",access:"R",desc:"Reserved"},{msb:14,lsb:14,name:"SYSCFGLPEN",access:"RW",desc:"SYSCFG sleep clock"},{msb:13,lsb:13,name:"SPI4LPEN",access:"RW",desc:"SPI4 sleep clock"},{msb:12,lsb:12,name:"SPI1LPEN",access:"RW",desc:"SPI1 sleep clock"},{msb:11,lsb:11,name:"SDIOLPEN",access:"RW",desc:"SDIO sleep clock"},{msb:10,lsb:9,name:"Reserved",access:"R",desc:"Reserved"},{msb:8,lsb:8,name:"ADC1LPEN",access:"RW",desc:"ADC1 sleep clock"},{msb:7,lsb:6,name:"Reserved",access:"R",desc:"Reserved"},{msb:5,lsb:5,name:"USART6LPEN",access:"RW",desc:"USART6 sleep clock"},{msb:4,lsb:4,name:"USART1LPEN",access:"RW",desc:"USART1 sleep clock"},{msb:3,lsb:1,name:"Reserved",access:"R",desc:"Reserved"},{msb:0,lsb:0,name:"TIM1LPEN",access:"RW",desc:"TIM1 sleep clock"},
+  ]},
+]},
+{ group:"Backup & Status", regs:[
+  { name:"RCC_BDCR",offset:"0x70",desc:"Backup domain control register",reset:0x00000000,fields:[
+    {msb:31,lsb:17,name:"Reserved",access:"R",desc:"Reserved"},{msb:16,lsb:16,name:"BDRST",access:"RW",desc:"Backup domain software reset"},{msb:15,lsb:15,name:"RTCEN",access:"RW",desc:"RTC clock enable"},{msb:14,lsb:10,name:"Reserved",access:"R",desc:"Reserved"},{msb:9,lsb:8,name:"RTCSEL",access:"RW",desc:"RTC source: 00=no clk,01=LSE,10=LSI,11=HSE/RTCPRE",enum:{0:"No clock",1:"LSE",2:"LSI",3:"HSE/RTCPRE"}},{msb:7,lsb:3,name:"Reserved",access:"R",desc:"Reserved"},{msb:2,lsb:2,name:"LSEBYP",access:"RW",desc:"LSE bypass"},{msb:1,lsb:1,name:"LSERDY",access:"R",desc:"LSE ready"},{msb:0,lsb:0,name:"LSEON",access:"RW",desc:"LSE enable"},
+  ]},
+  { name:"RCC_CSR",offset:"0x74",desc:"Clock control & status register",reset:0x0E000000,fields:[
+    {msb:31,lsb:31,name:"LPWRRSTF",access:"R",desc:"Low-power reset flag"},{msb:30,lsb:30,name:"WWDGRSTF",access:"R",desc:"WWDG reset flag"},{msb:29,lsb:29,name:"IWDGRSTF",access:"R",desc:"IWDG reset flag"},{msb:28,lsb:28,name:"SFTRSTF",access:"R",desc:"Software reset flag"},{msb:27,lsb:27,name:"PORRSTF",access:"R",desc:"POR/PDR reset flag"},{msb:26,lsb:26,name:"PINRSTF",access:"R",desc:"PIN reset flag"},{msb:25,lsb:25,name:"BORRSTF",access:"R",desc:"BOR reset flag"},{msb:24,lsb:24,name:"RMVF",access:"RW",desc:"Remove reset flag"},{msb:23,lsb:2,name:"Reserved",access:"R",desc:"Reserved"},{msb:1,lsb:1,name:"LSIRDY",access:"R",desc:"LSI ready"},{msb:0,lsb:0,name:"LSION",access:"RW",desc:"LSI enable"},
+  ]},
+]},
+{ group:"Spread Spectrum / PLLI2S / Dedicated", regs:[
+  { name:"RCC_SSCGR",offset:"0x80",desc:"Spread spectrum clock generation register",reset:0x00000000,fields:[
+    {msb:31,lsb:31,name:"SSCGEN",  access:"RW",desc:"Spread spectrum modulation enable"},{msb:30,lsb:30,name:"SPREADSEL",access:"RW",desc:"Spread select",enum:{0:"Center spread",1:"Down spread"}},{msb:29,lsb:28,name:"Reserved",access:"R",desc:"Reserved"},{msb:27,lsb:13,name:"INCSTEP",access:"RW",desc:"Incrementation step (0-32767)"},{msb:12,lsb:0,name:"MODPER",  access:"RW",desc:"Modulation period (0-8191)"},
+  ]},
+  { name:"RCC_PLLI2SCFGR",offset:"0x84",desc:"PLLI2S configuration register",reset:0x20003000,fields:[
+    {msb:31,lsb:31,name:"Reserved",access:"R", desc:"Reserved"},{msb:30,lsb:28,name:"PLLI2SR",access:"RW",desc:"PLLI2S division factor for I2S (2-7)"},{msb:27,lsb:15,name:"Reserved",access:"R", desc:"Reserved"},{msb:14,lsb:6,name:"PLLI2SN",access:"RW",desc:"PLLI2S multiplication factor (50-432)"},{msb:5,lsb:0,name:"Reserved",access:"R", desc:"Reserved"},
+  ]},
+  { name:"RCC_DCKCFGR",offset:"0x8C",desc:"Dedicated clocks configuration register",reset:0x00000000,fields:[
+    {msb:31,lsb:25,name:"Reserved",access:"R", desc:"Reserved"},{msb:24,lsb:24,name:"TIMPRE",access:"RW",desc:"Timer prescaler selection",enum:{0:"x1/x2",1:"x2/x4"}},{msb:23,lsb:0,name:"Reserved",access:"R", desc:"Reserved"},
+  ]},
+]},
+];
+
+/* ================================================================
+   REGISTER STATE  (single source of truth)
+   ================================================================ */
+const state = {};
+RCC.forEach((g,gi) => g.regs.forEach((r,ri) => { state[`${gi}-${ri}`] = r.reset >>> 0; }));
+
+/* ================================================================
+   BRIDGE: REGISTER STATE → CLOCK TREE STATE
+   Gọi sau mỗi thay đổi register (rerenderReg → syncClockFromRegisters).
+   ================================================================ */
+function syncClockFromRegisters() {
+  const cr      = state['0-0'];   // RCC_CR
+  const pllcfgr = state['0-1'];   // RCC_PLLCFGR
+  const cfgr    = state['0-2'];   // RCC_CFGR
+  const bdcr    = state['4-0'];   // RCC_BDCR
+  const csr     = state['4-1'];   // RCC_CSR
+
+  /* Nguồn xung */
+  states.hsi    = !!(cr & (1 << 0));
+  states.hse    = !!(cr & (1 << 16));
+  states.pll    = !!(cr & (1 << 24));
+  states.plli2s = !!(cr & (1 << 27));
+  states.lsi    = !!(csr  & (1 << 0));
+  states.lse    = !!(bdcr & (1 << 0));
+  states.rtcEn  = !!(bdcr & (1 << 15));
+
+  const ahb1enr = state['2-0'];   // RCC_AHB1ENR
+  const ahb2enr = state['2-1'];   // RCC_AHB2ENR
+  const apb1enr = state['2-2'];   // RCC_APB1ENR
+  const apb2enr = state['2-3'];   // RCC_APB2ENR
+  states.pll48En = !!(ahb2enr & (1 << 7));                            // OTGFSEN
+  states.i2sEn   = !!(apb1enr & (1 << 15)) || !!(apb1enr & (1 << 14)); // SPI3EN | SPI2EN
+
+  // Gate states derived from peripheral enable registers
+  states.hclkEn = (ahb1enr & 0x0060109F) !== 0;   // any GPIO/DMA/CRC bit set in AHB1ENR
+  states.apbEn  = apb1enr !== 0;                   // any APB1 peripheral enabled
+  states.apbTEn = apb2enr !== 0;                   // any APB2 peripheral enabled
+
+  /* MUX */
+  const swBits = cfgr & 0x3;
+  mux.sw     = ['HSI','HSE','PLL','-'][swBits] || 'HSI';
+  mux.pllsrc = (pllcfgr >>> 22) & 1 ? 'HSE' : 'HSI';
+  mux.i2s    = (cfgr >>> 23) & 1 ? 'EXT' : 'PLLI2S';
+
+  const rtcsel = (bdcr >>> 8) & 0x3;
+  /* RTCSEL: 0=no clock, 1=LSE, 2=LSI, 3=HSE */
+  mux.rtc  = [null, 'LSE', 'LSI', 'HSE'][rtcsel];
+  mux.mco1 = ['HSI','LSE','HSE','PLL'][(cfgr >>> 21) & 0x3];
+  mux.mco2 = ['SYSCLK','PLLI2S','HSE','PLL'][(cfgr >>> 30) & 0x3];
+
+  updateAnimation();
+}
+
+/* ================================================================
+   CLOCK TREE — HELPERS
+   ================================================================ */
+function setWireGroup(idList, isActive) {
+  if (!idList || !idList.length) return;
+  idList.forEach(num => {
+    const el = document.querySelector(`[data-cell-id="${getPrefix(num) + num}"]`);
+    if (!el) return;
+    el.querySelectorAll('path,line,polyline').forEach(p => {
+      if (isActive) {
+        p.classList.add('signal-active');
+        p.style.setProperty('stroke','#e74c3c','important');
+        p.style.setProperty('stroke-width','3px','important');
+        p.style.setProperty('stroke-dasharray','10 6','important');
+        p.style.setProperty('animation','ct-flow 0.6s linear infinite','important');
+      } else {
+        p.classList.remove('signal-active');
+        ['stroke','stroke-width','stroke-dasharray','animation'].forEach(prop => p.style.removeProperty(prop));
+      }
+    });
+    if (['path','line','polyline'].includes(el.tagName.toLowerCase())) {
+      if (isActive) {
+        el.classList.add('signal-active');
+        el.style.setProperty('stroke','#e74c3c','important');
+        el.style.setProperty('stroke-width','3px','important');
+      } else {
+        el.classList.remove('signal-active');
+        el.style.removeProperty('stroke');
+        el.style.removeProperty('stroke-width');
+      }
+    }
+  });
+}
+const setText  = (id,on) => { const e=document.querySelector(`[data-cell-id="${id}"]`); if(e) e.classList.toggle('text-active',on); };
+const setBox   = (id,on) => { const e=document.querySelector(`[data-cell-id="${id}"]`); if(e) e.classList.toggle('box-active',on); };
+const setGate  = (id,on) => { const e=document.querySelector(`[data-cell-id="${id}"]`); if(e) e.classList.toggle('gate-active',on); };
+const setEnable  = (id,on) => { const e=document.querySelector(`[data-cell-id="${id}"]`); if(e) e.classList.toggle('enable-active',on); };
+const setDivider = (id,on) => { const e=document.querySelector(`[data-cell-id="${id}"]`); if(e) e.classList.toggle('divider-active',on); };
+
+function resetAllWires() {
+  document.querySelectorAll('[data-cell-id]').forEach(el => {
+    el.classList.remove('signal-active');
+    ['stroke','stroke-width','stroke-dasharray','animation'].forEach(p => el.style.removeProperty(p));
+    el.querySelectorAll('path,line,polyline').forEach(p => {
+      p.classList.remove('signal-active');
+      ['stroke','stroke-width','stroke-dasharray','animation'].forEach(prop => p.style.removeProperty(prop));
+    });
+  });
+}
+
+/* ================================================================
+   CLOCK TREE — ANIMATION LOGIC  (giống v7, không thay đổi)
+   ================================================================ */
+function updateAnimation() {
+        resetAllWires();
+
+        const { lsi:lsiOn, lse:lseOn, hsi:hsiOn, hse:hseOn } = states;
+        const pllNeedsClock = states.pll || states.plli2s;
+
+        // ===== LSI =====
+        setWireGroup(Wires.lsi_to_rtc, lsiOn);
+        setWireGroup(Wires.lsi_to_iwdg, lsiOn);
+        setWireGroup(Wires.iwdg_to_gate,  states.iwdgEn);
+        const iwdgOn = lsiOn && states.iwdgEn;
+        setGate(Gates.iwdg, iwdgOn);
+        setWireGroup(Wires.iwdg_out, iwdgOn);
+        setText(UI.txtIwdg, iwdgOn);
+
+        // ===== LSE =====
+        setWireGroup(Wires.lse_trunk, lseOn);
+        setWireGroup(Wires.lse_to_rtc, lseOn);
+        setWireGroup(Wires.lse_to_mco, lseOn);
+
+        // ===== HSE =====
+        setWireGroup(Wires.hse_osc, hseOn);
+        setWireGroup(Wires.hse_to_mco, hseOn);
+        setWireGroup(Wires.hse_to_sw, hseOn);
+        setWireGroup(Wires.hse_to_rtc, hseOn);
+        setWireGroup(Wires.hse_to_pllsrc_mux, hseOn);
+        //const hseToPllActive = hseOn && mux.pllsrc === 'HSE' && pllNeedsClock;
+        setWireGroup(Wires.hse_to_pll_m, hseOn);
+
+        // ===== HSI =====
+        setWireGroup(Wires.hsi_to_mco, hsiOn);
+        setWireGroup(Wires.hsi_to_pllsrc_mux, hsiOn);
+        const hsiToPllActive = hsiOn && mux.pllsrc === 'HSI' && pllNeedsClock;
+        setWireGroup(Wires.hsi_to_pll_m, hsiToPllActive);
+
+        // ===== PLLSRC MUX =====
+        const pllsrcOk = (mux.pllsrc === 'HSI' && hsiOn) ||
+                         (mux.pllsrc === 'HSE' && hseOn);
+        const pllsrcMuxOut = pllsrcOk && pllNeedsClock;
+        setBox(PREFIX + "113", pllsrcMuxOut);
+
+        // ===== RTCSEL → RTC =====
+        let rtcSrcOn = false;
+        if (mux.rtc === 'LSI' && lsiOn) rtcSrcOn = true;
+        if (mux.rtc === 'LSE' && lseOn) rtcSrcOn = true;
+        if (mux.rtc === 'HSE' && hseOn) rtcSrcOn = true;
+        setWireGroup(Wires.rtcsel_to_gate, rtcSrcOn);
+        setWireGroup(Wires.rtcen_to_gate,  states.rtcEn);
+        setBox(PREFIX + "77", rtcSrcOn);
+        const rtcOn = rtcSrcOn && states.rtcEn;
+        setGate(Gates.rtc, rtcOn);
+        setWireGroup(Wires.rtc_out, rtcOn);
+        setText(UI.txtRtc, rtcOn);
+
+        // ===== PLL =====
+        const pllInputOn = pllsrcOk;
+        const pllOn = states.pll && pllInputOn;
+        setWireGroup(Wires.pll_m_to_vco, pllOn);
+        setWireGroup(Wires.pll_vco_loop, pllOn);
+        setWireGroup(Wires.pll_xn_out, pllOn);
+        setWireGroup(Wires.pll_to_pllclk, pllOn);
+
+        // ===== PLLI2S =====
+        const plli2sOn = states.plli2s && pllInputOn;
+        setWireGroup(Wires.plli2s_m, plli2sOn);
+        setWireGroup(Wires.plli2s_vco_loop, plli2sOn);
+        setWireGroup(Wires.plli2s_xn_out, plli2sOn);
+
+        // ===== SYSCLK =====
+        let sysclkOn = false;
+        if (mux.sw === 'HSI' && hsiOn) sysclkOn = true;
+        if (mux.sw === 'HSE' && hseOn) sysclkOn = true;
+        if (mux.sw === 'PLL' && pllOn) sysclkOn = true;
+
+        // ===== MCO MUX inputs =====
+        setWireGroup(Wires.sysclk_to_mco, sysclkOn);
+        setWireGroup(Wires.pll_to_mco, pllOn);
+        setWireGroup(Wires.plli2s_to_mco, plli2sOn);
+
+        // MCO1 OUTPUT
+        let mco1Out = false;
+        if (mux.mco1 === 'HSI' && hsiOn) mco1Out = true;
+        if (mux.mco1 === 'LSE' && lseOn) mco1Out = true;
+        if (mux.mco1 === 'HSE' && hseOn) mco1Out = true;
+        if (mux.mco1 === 'PLL' && pllOn) mco1Out = true;
+        setWireGroup(Wires.mco1_mux_to_div, mco1Out);
+        setWireGroup(Wires.mco1_to_pin,     mco1Out);
+
+        // MCO2 OUTPUT
+        let mco2Out = false;
+        if (mux.mco2 === 'SYSCLK' && sysclkOn) mco2Out = true;
+        if (mux.mco2 === 'PLLI2S' && plli2sOn) mco2Out = true;
+        if (mux.mco2 === 'HSE'    && hseOn)    mco2Out = true;
+        if (mux.mco2 === 'PLL'    && pllOn)    mco2Out = true;
+        setWireGroup(Wires.mco2_mux_to_div, mco2Out);
+        setWireGroup(Wires.mco2_to_pin,     mco2Out);
+
+        setBox(PREFIX + "59", mco2Out);
+        setBox(PREFIX + "61", mco1Out);
+        setBox(PREFIX + "25", mco2Out);
+        setBox(PREFIX + "27", mco1Out);
+
+        // ===== SW MUX → SYSCLK =====
+        setWireGroup(Wires.sw_hsi_in,     hsiOn);
+        setWireGroup(Wires.sw_hse_in_seg, hseOn);
+        setWireGroup(Wires.sw_pll_in,     pllOn);
+        setBox(PREFIX + "130", sysclkOn);
+        setWireGroup(Wires.sw_out, sysclkOn);
+        setText(UI.txtSysclk, sysclkOn);
+
+        // ===== AHB → AHB PRESC =====
+        setWireGroup(Wires.sysclk_to_ahb, sysclkOn);
+
+        // ===== HCLK gate (cần SYSCLK + click box 149) =====
+        const hclkGateActive = sysclkOn && states.hclkEn;
+        setWireGroup(Wires.ahb_to_gate_in, hclkGateActive);   // wire 144
+        setWireGroup(Wires.ahb_to_gate_en, hclkGateActive);   // wire 145
+        setEnable(UI.hclkEnBox, states.hclkEn);
+        setGate(Gates.hclk, hclkGateActive);
+        setText(UI.txtHclk, hclkGateActive);
+
+        // ===== Cortex Timer + FCLK (không qua enable bit) =====
+        setWireGroup(Wires.cortex_div8, sysclkOn);
+        setWireGroup(Wires.fclk, sysclkOn);
+        setText(UI.txtCortex, sysclkOn);
+        setText(UI.txtFclk, sysclkOn);
+
+        // ===== APBx clocks gate (cần SYSCLK + click box 165) =====
+        setWireGroup(Wires.ahb_to_apb, sysclkOn);
+
+        const apbGateActive = sysclkOn && states.apbEn;
+        setWireGroup(Wires.apb_clock_to_gate_in, apbGateActive);   // wire 9 (PREFIX_2)
+        setWireGroup(Wires.apb_clock_to_gate_en, apbGateActive);   // wire 167
+        setEnable(UI.apbEnBox, states.apbEn);
+        setGate(Gates.apb, apbGateActive);
+        setWireGroup(Wires.apb_clocks_out, apbGateActive);
+        setText(UI.txtApb, apbGateActive);
+
+        // ===== APBx timer gate (cần SYSCLK + click box PREFIX_2-10) =====
+        const apbTGateActive = sysclkOn && states.apbTEn;
+        setWireGroup(Wires.apb_timer_to_gate_in, apbTGateActive);   // wire 171
+        setWireGroup(Wires.apb_timer_to_gate_en, apbTGateActive);   // wire 169
+        setEnable(UI.apbTEnBox, states.apbTEn);
+        setGate(Gates.apbT, apbTGateActive);
+        setText(UI.txtApbT, apbTGateActive);
+
+        // ===== 48 MHz gate (cần PLL ON + click box 177) =====
+        const pll48GateActive = pllOn && states.pll48En;
+        setWireGroup(Wires.pll48_to_gate_in, pllOn);   // wire 178
+        setWireGroup(Wires.pll48_to_gate_en, pll48GateActive);   // wire 174
+        setWireGroup(Wires.pll48_out,        pll48GateActive);   // wire 175
+        setEnable(UI.pll48EnBox, states.pll48En);
+        setGate(Gates.pll48, pll48GateActive);
+        setText(UI.txt48, pll48GateActive);
+
+        // ===== I2SSRC MUX =====
+        const i2sSrcOn = (mux.i2s === 'PLLI2S' && plli2sOn) ||
+                         (mux.i2s === 'EXT');
+        setWireGroup(Wires.plli2s_to_i2ssrc, plli2sOn);
+        setWireGroup(Wires.i2s_ext, mux.i2s === 'EXT');
+        setWireGroup(Wires.i2ssrc_internal, i2sSrcOn);
+        setBox(PREFIX + "122", i2sSrcOn);
+
+        // ===== I2S gate (cần I2SSRC có nguồn + click box 183) =====
+        const i2sGateActive = i2sSrcOn && states.i2sEn;
+        setWireGroup(Wires.i2s_to_gate_in, i2sSrcOn);   // wire 121
+        setWireGroup(Wires.i2s_to_gate_en, i2sGateActive);   // wire 184
+        setWireGroup(Wires.i2s_out,        i2sGateActive);   // wire 181
+        setEnable(UI.i2sEnBox, states.i2sEn);
+        setGate(Gates.i2s, i2sGateActive);
+        setText(UI.txtI2S, i2sGateActive);
+
+        // ===== HIGHLIGHT BỘ CHIA KHI CLOCK ĐI QUA =====================
+        // HSE_RTC divider (/2 to 31): active khi HSE ON và RTCSEL chọn HSE
+        setDivider(Dividers.hse_rtc_div, hseOn);
+
+        // MCO1 divider (/1 to 5): active khi MCO1 đang output clock
+        setDivider(Dividers.mco1_div, mco1Out);
+
+        // MCO2 divider (/1 to 5): active khi MCO2 đang output clock
+        setDivider(Dividers.mco2_div, mco2Out);
+
+        // PLL /M: active khi có clock vào PLL hoặc PLLI2S (vì /M shared)
+        setDivider(Dividers.pll_m, pllsrcMuxOut);
+
+        setDivider(Dividers.pll_p, pllOn);
+
+        // PLL /Q: active khi PLL đang chạy (output cho 48MHz path)
+        setDivider(Dividers.pll_q, pllOn);
+
+        // PLL /R: trên F411 không dùng, vẫn highlight khi PLL ON cho trực quan
+        setDivider(Dividers.pll_r, pllOn);
+
+        // PLLI2S /M: active khi PLLI2S đang chạy
+        setDivider(Dividers.plli2s_m, plli2sOn);
+
+        // PLLI2S /P, /Q, /R: active khi PLLI2S đang chạy
+        setDivider(Dividers.plli2s_p, plli2sOn);
+        setDivider(Dividers.plli2s_q, plli2sOn);
+        setDivider(Dividers.plli2s_r, plli2sOn);
+
+        // AHBx PRESC: active khi có SYSCLK đi qua (HCLK đến APB bus)
+        setDivider(Dividers.ahb_presc, sysclkOn);
+        // APBx PRESC: active khi có SYSCLK đi qua (HCLK đến APB bus)
+        setDivider(Dividers.apb_presc, sysclkOn);
+
+        // APBx Timer multiplier (x1/x2): active khi có SYSCLK
+        setDivider(Dividers.apb_timer_mul, sysclkOn);
+
+        // Cortex /8 divider: active khi có SYSCLK (Cortex SysTick luôn chạy)
+        setDivider(Dividers.cortex_div8, sysclkOn);
+
+        // ===== Cập nhật trạng thái khối nguồn =====
+        ['lsi','lse','hsi','hse','pll','plli2s','iwdgEn','rtcEn'].forEach(k => {
+            setBox(UI[k], states[k]);
+        });
+
+        updateStatusPanel();
+    }
+
+function updateStatusPanel() {
+  ['hsi','hse','lsi','lse','pll','plli2s'].forEach(k => {
+    const el = document.getElementById('s-'+k);
+    if (el) { el.textContent = states[k]?'ON':'OFF'; el.className = states[k]?'on':'off'; }
+  });
+  document.getElementById('s-sw').textContent   = mux.sw;
+  document.getElementById('s-rtc').textContent  = mux.rtc || '-';
+  document.getElementById('s-i2s').textContent  = mux.i2s;
+  const ps = document.getElementById('s-pllsrc'); if(ps) ps.textContent = mux.pllsrc;
+  ['mco1','mco2'].forEach(k => {
+    const el = document.getElementById('s-'+k);
+    if(el){ el.textContent=mux[k]; el.className=mux[k]==='OFF'?'off':'on'; }
+  });
+  ['hclkEn','apbEn','apbTEn','pll48En','i2sEn'].forEach(k => {
+    const el = document.getElementById('s-'+k);
+    if(el){ el.textContent=states[k]?'ON':'OFF'; el.className=states[k]?'on':'off'; }
+  });
+}
+
+/* ================================================================
+   CLOCK TREE — SVG CLICK EVENTS  (manual override vẫn hoạt động)
+   ================================================================ */
+document.addEventListener("DOMContentLoaded", () => {
+  /* ── TREE → REGISTER: click SVG block → scroll + highlight register bit ── */
+  Object.entries(TREE_NAV).forEach(([key, nav]) => {
+    const cellId = UI[key]; if (!cellId) return;
+    const el = document.querySelector(`[data-cell-id="${cellId}"]`);
+    if (el) el.addEventListener('click', e => {
+      e.stopPropagation();
+      navigateToField(nav.regKey, nav.msb, nav.lsb, nav.hint);
+    });
+  });
+  Object.entries(TREE_NAV_MUX).forEach(([cellId, nav]) => {
+    const el = document.querySelector(`[data-cell-id="${cellId}"]`);
+    if (el) el.addEventListener('click', e => {
+      e.stopPropagation();
+      navigateToField(nav.regKey, nav.msb, nav.lsb, nav.hint);
+    });
+  });
+  Object.entries(TREE_NAV_DIV).forEach(([cellId, nav]) => {
+    const el = document.querySelector(`[data-cell-id="${cellId}"]`);
+    if (el) el.addEventListener('click', e => {
+      e.stopPropagation();
+      navigateToField(nav.regKey, nav.msb, nav.lsb, nav.hint);
+    });
+  });
+
+  setTimeout(() => { resetAllWires(); syncClockFromRegisters(); }, 300);
+});
+
+/* ================================================================
+   REGISTER HELPERS
+   ================================================================ */
+const toHex32 = v => "0x"+(v>>>0).toString(16).toUpperCase().padStart(8,"0");
+const mask = (msb,lsb) => { const w=msb-lsb+1; const ones=w===32?0xFFFFFFFF:((1<<w)>>>0)-1; return ((ones<<lsb)>>>0); };
+const getField = (val,msb,lsb) => { const w=msb-lsb+1; if(w===32)return val>>>0; return((val>>>lsb)&(((1<<w)>>>0)-1))>>>0; };
+const setField = (val,msb,lsb,fv) => { const w=msb-lsb+1; const fmax=w===32?0xFFFFFFFF:((1<<w)>>>0)-1; return(((val&(~mask(msb,lsb)>>>0))>>>0)|(((fv&fmax)<<lsb)>>>0))>>>0; };
+
+/* ================================================================
+   RENDER — REGISTER PANEL
+   ================================================================ */
+const dashEl = document.getElementById("dashboard");
+
+function render() {
+  dashEl.innerHTML = "";
+  RCC.forEach((g,gi) => {
+    const groupEl = document.createElement("div");
+    groupEl.className = "group";
+    groupEl.innerHTML = `<div class="group-bar"><span>${g.group}</span><span class="count">${g.regs.length}</span></div><div class="group-body" id="gb-${gi}"></div>`;
+    dashEl.appendChild(groupEl);
+    const body = groupEl.querySelector(`#gb-${gi}`);
+    g.regs.forEach((r,ri) => body.appendChild(renderReg(gi,ri,r)));
+  });
+  updateSummary();
+}
+
+function renderReg(gi,ri,r) {
+  const key=`${gi}-${ri}`, val=state[key];
+  const regEl=document.createElement("div");
+  regEl.className="reg"; regEl.id=`reg-${key}`;
+  regEl.innerHTML=`
+    <div class="reg-head">
+      <div class="reg-head-left">
+        <span class="reg-name">${r.name}</span>
+        <span class="reg-offset">${r.offset}</span>
+        <span class="reg-desc">${r.desc}</span>
+      </div>
+      <div class="reg-hex-wrap">
+        <button class="reg-reset-btn" data-act="reset" data-key="${key}">↺ reset</button>
+        <span class="reg-hex" id="hex-${key}">${toHex32(val)}</span>
+        <span class="rst-badge" id="rst-${key}"></span>
+      </div>
+    </div>`;
+
+  const bitMap=new Array(32).fill(null);
+  r.fields.forEach(f => { for(let b=f.lsb;b<=f.msb;b++) bitMap[b]=f; });
+  const grid=document.createElement("div"); grid.className="bit-grid";
+
+  for(let bit=31; bit>=0; bit--) {
+    const f=bitMap[bit], bv=(val>>>bit)&1;
+    const cell=document.createElement("div"); cell.className="bit-cell";
+    const bn=document.createElement("div");
+    bn.className="bit-num"+((bit%8===0||bit===31)?" byte-edge":""); bn.textContent=bit;
+    cell.appendChild(bn);
+    const box=document.createElement("div");
+    box.className=`bit-box acc-${f.access}`+(bv?" on":"");
+    box.textContent=bv;
+    Object.assign(box.dataset,{key,bit,msb:f.msb,lsb:f.lsb,access:f.access,fieldName:f.name});
+    if(f.msb!==f.lsb && f.name!=="Reserved"){
+      box.classList.add("field-cell");
+      if(bit===f.msb){ box.classList.add("field-left"); const lbl=document.createElement("div"); lbl.className="field-label"; lbl.textContent=`${f.name}[${f.msb-f.lsb}:0]`; cell.appendChild(lbl); }
+      if(bit===f.lsb) box.classList.add("field-right");
+    }
+    cell.appendChild(box);
+    const tip=document.createElement("div"); tip.className="tooltip";
+    const fv=getField(val,f.msb,f.lsb), el=f.enum&&f.enum[fv]!==undefined?` → ${f.enum[fv]}`:"";
+    tip.innerHTML=`<div class="tt-name">${f.name}</div><div class="tt-meta"><span class="acc">${f.access}</span><span>bit ${f.msb===f.lsb?f.msb:`${f.msb}:${f.lsb}`}</span></div><div class="tt-desc">${f.desc}</div>${f.name!=="Reserved"?`<div class="tt-val">0x${fv.toString(16).toUpperCase()} (${fv})${el}</div>`:""}`;
+    cell.appendChild(tip); grid.appendChild(cell);
+  }
+  regEl.appendChild(grid);
+  return regEl;
+}
+
+function rerenderReg(gi,ri) {
+  const key=`${gi}-${ri}`;
+  document.getElementById(`reg-${key}`).replaceWith(renderReg(gi,ri,RCC[gi].regs[ri]));
+  updateSummary();
+  if(document.body.classList.contains('rst-diff-on')) updateResetBadge(gi,ri);
+  syncClockFromRegisters();   /* ← BRIDGE HOOK */
+}
+
+function updateSummary() {
+  let total=0; RCC.forEach(g=>total+=g.regs.length);
+  let mod=0; RCC.forEach((g,gi)=>g.regs.forEach((r,ri)=>{ if(state[`${gi}-${ri}`]!==(r.reset>>>0)) mod++; }));
+  document.getElementById("summary").textContent=`${total} registers · ${mod} modified`;
+}
+
+/* ================================================================
+   EVENTS — REGISTER
+   ================================================================ */
+document.addEventListener("click", e => {
+  if(e.target.matches("[data-act=reset]")){
+    const key=e.target.dataset.key, [gi,ri]=key.split("-").map(Number);
+    state[key]=RCC[gi].regs[ri].reset>>>0; rerenderReg(gi,ri); return;
+  }
+  const box=e.target.closest(".bit-box");
+  if(!box||box.dataset.access==="R") return;
+  const key=box.dataset.key, [gi,ri]=key.split("-").map(Number);
+  const msb=+box.dataset.msb, lsb=+box.dataset.lsb;
+  if(msb!==lsb && box.dataset.fieldName!=="Reserved") {
+    openModal(gi,ri,msb,lsb,box.dataset.fieldName);
+  } else {
+    state[key]=(state[key]^((1<<(+box.dataset.bit))>>>0))>>>0;
+    rerenderReg(gi,ri);
+  }
+});
+
+document.getElementById("btn-reset-all").addEventListener("click", () => {
+  RCC.forEach((g,gi)=>g.regs.forEach((r,ri)=>{ state[`${gi}-${ri}`]=r.reset>>>0; }));
+  render(); syncClockFromRegisters();
+});
+document.getElementById("btn-export").addEventListener("click", () => {
+  const out={}; RCC.forEach((g,gi)=>g.regs.forEach((r,ri)=>{ out[r.name]=toHex32(state[`${gi}-${ri}`]); }));
+  const txt=JSON.stringify(out,null,2); navigator.clipboard?.writeText(txt); alert("Copied:\n\n"+txt);
+});
+document.getElementById("btn-read-all").addEventListener("click", () => { ws.sendCmd({cmd:"read_all"}); });
+
+/* ================================================================
+   FIELD EDITOR MODAL
+   ================================================================ */
+const modal=document.getElementById("modal");
+let mCtx=null;
+
+function openModal(gi,ri,msb,lsb,fname) {
+  const key=`${gi}-${ri}`, reg=RCC[gi].regs[ri];
+  const field=reg.fields.find(f=>f.msb===msb&&f.lsb===lsb);
+  const fv=getField(state[key],msb,lsb), w=msb-lsb+1;
+  const fmax=w===32?0xFFFFFFFF:((1<<w)>>>0)-1;
+  mCtx={key,gi,ri,msb,lsb,fmax,w};
+  document.getElementById("m-field").textContent=`${reg.name} · ${fname}[${msb}:${lsb}]`;
+  document.getElementById("m-desc").textContent=field.desc;
+  let hint=`Width: ${w} bit · Range: 0..${fmax} (0x${fmax.toString(16).toUpperCase()})`;
+  if(field.enum) hint+="\n"+Object.entries(field.enum).map(([k,v])=>`  ${k} = ${v}`).join("\n");
+  document.getElementById("m-hint").textContent=hint;
+  document.getElementById("m-hint").style.whiteSpace="pre-line";
+  document.getElementById("m-hex").value="0x"+fv.toString(16).toUpperCase();
+  document.getElementById("m-dec").value=fv.toString();
+  document.getElementById("m-bin").value=fv.toString(2).padStart(w,"0");
+  modal.classList.add("active");
+  document.getElementById("m-hex").focus(); document.getElementById("m-hex").select();
+}
+const closeModal=()=>{modal.classList.remove("active");mCtx=null;};
+document.getElementById("m-cancel").addEventListener("click",closeModal);
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+
+function syncFrom(src) {
+  if(!mCtx)return; const{fmax,w}=mCtx; let v=0;
+  try{
+    if(src==="hex") v=parseInt(document.getElementById("m-hex").value.replace(/^0x/i,""),16);
+    else if(src==="dec") v=parseInt(document.getElementById("m-dec").value,10);
+    else if(src==="bin") v=parseInt(document.getElementById("m-bin").value,2);
+  }catch{v=0;}
+  if(isNaN(v)||v<0)v=0; if(v>fmax)v=fmax;
+  if(src!=="hex") document.getElementById("m-hex").value="0x"+v.toString(16).toUpperCase();
+  if(src!=="dec") document.getElementById("m-dec").value=v.toString();
+  if(src!=="bin") document.getElementById("m-bin").value=v.toString(2).padStart(w,"0");
+}
+document.getElementById("m-hex").addEventListener("input",()=>syncFrom("hex"));
+document.getElementById("m-dec").addEventListener("input",()=>syncFrom("dec"));
+document.getElementById("m-bin").addEventListener("input",()=>syncFrom("bin"));
+document.getElementById("m-apply").addEventListener("click",()=>{
+  if(!mCtx)return; const{key,gi,ri,msb,lsb,fmax}=mCtx;
+  let v=parseInt(document.getElementById("m-hex").value.replace(/^0x/i,""),16);
+  if(isNaN(v)||v<0)v=0; if(v>fmax)v=fmax;
+  state[key]=setField(state[key],msb,lsb,v); closeModal(); rerenderReg(gi,ri);
+  ws.sendCmd({cmd:"write",reg:RCC[gi].regs[ri].name,value:toHex32(state[key])});
+});
+
+/* ================================================================
+   WEBSOCKET ENGINE
+   ================================================================ */
+const regIndex={};
+RCC.forEach((g,gi)=>g.regs.forEach((r,ri)=>{regIndex[r.name]={gi,ri};}));
+const WS_URL="ws://localhost:8765", POLL_MS=500;
+
+const ws=(()=>{
+  let socket=null,pollTimer=null,reconnectTimer=null,reconnectDelay=1500;
+  const dot=document.getElementById("ws-dot"),label=document.getElementById("ws-label"),
+        msg=document.getElementById("ws-msg"),ring=document.getElementById("poll-ring");
+
+  function setStatus(s,t){
+    dot.className="ws-dot "+s;
+    label.textContent={connecting:"Connecting",connected:"Live",error:"Offline"}[s]||s;
+    msg.textContent=t; ring.classList.toggle("active",s==="connected");
+  }
+  function connect(){
+    setStatus("connecting","Đang kết nối "+WS_URL+" ...");
+    try{socket=new WebSocket(WS_URL);}catch{scheduleReconnect();return;}
+    socket.onopen=()=>{reconnectDelay=1500;setStatus("connected","Board kết nối · "+WS_URL);socket.send(JSON.stringify({cmd:"read_all"}));startPoll();};
+    socket.onmessage=({data})=>{let m;try{m=JSON.parse(data);}catch{return;}handleMessage(m);};
+    socket.onclose=()=>{stopPoll();scheduleReconnect();};
+    socket.onerror=()=>{setStatus("error","Không thể kết nối bridge.py — chạy: bash run.sh");};
+  }
+  function scheduleReconnect(){setStatus("error",`Mất kết nối. Thử lại sau ${(reconnectDelay/1000).toFixed(1)}s...`);reconnectTimer=setTimeout(()=>{reconnectDelay=Math.min(reconnectDelay*1.5,10000);connect();},reconnectDelay);}
+  function startPoll(){stopPoll();pollTimer=setInterval(()=>{if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({cmd:"read_all"}));},POLL_MS);}
+  function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}ring.classList.remove("active");}
+
+  function handleMessage(m){
+    if(m.type==="snapshot"){
+      Object.entries(m.regs||{}).forEach(([name,hexStr])=>{
+        const idx=regIndex[name]; if(!idx)return;
+        const{gi,ri}=idx, key=`${gi}-${ri}`, nv=parseInt(hexStr,16)>>>0;
+        if(state[key]!==nv){state[key]=nv;rerenderReg(gi,ri);flashReg(key);}
+        /* syncClockFromRegisters đã được gọi trong rerenderReg */
+      });
+    } else if(m.type==="reg_update"){
+      const idx=regIndex[m.reg]; if(!idx)return;
+      const{gi,ri}=idx, key=`${gi}-${ri}`, nv=parseInt(m.value,16)>>>0;
+      if(state[key]!==nv){state[key]=nv;rerenderReg(gi,ri);flashReg(key);}
+    } else if(m.type==="connection"){
+      setStatus(m.connected?"connected":"error",m.connected?"Board kết nối · "+WS_URL:"Board chưa kết nối — kiểm tra ST-Link");
+    } else if(m.type==="error"){
+      setStatus("error","Lỗi: "+m.msg);
+      setTimeout(()=>setStatus("connected","Board kết nối · "+WS_URL),2000);
+    }
+  }
+  function flashReg(key){const el=document.getElementById(`hex-${key}`);if(el){el.classList.remove("flash");void el.offsetWidth;el.classList.add("flash");}}
+  document.getElementById("ws-reconnect-btn").addEventListener("click",()=>{clearTimeout(reconnectTimer);if(socket)socket.close();reconnectDelay=1500;connect();});
+  document.addEventListener("click",e=>{
+    const box=e.target.closest(".bit-box");
+    if(!box||box.dataset.access==="R"||!box.dataset.key)return;
+    setTimeout(()=>{const[gi,ri]=box.dataset.key.split("-").map(Number);ws.sendCmd({cmd:"write",reg:RCC[gi].regs[ri].name,value:toHex32(state[box.dataset.key])});},0);
+  });
+  function sendCmd(p){if(socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify(p));}
+  connect(); return{sendCmd};
+})();
+
+/* ================================================================
+   RESET DIFF MODE
+   ================================================================ */
+function updateResetBadge(gi,ri){
+  const key=`${gi}-${ri}`,badge=document.getElementById(`rst-${key}`);if(!badge)return;
+  const reset=RCC[gi].regs[ri].reset>>>0,cur=state[key]>>>0;
+  if(cur===reset){badge.className='rst-badge match';badge.textContent='= RST';}
+  else{const bits=(cur^reset).toString(2).split('').filter(b=>b==='1').length;badge.className='rst-badge diff';badge.textContent=`Δ ${bits}b`;}
+}
+function updateAllResetBadges(){RCC.forEach((g,gi)=>g.regs.forEach((r,ri)=>updateResetBadge(gi,ri)));}
+document.getElementById('btn-rst-diff').addEventListener('click',()=>{
+  document.body.classList.toggle('rst-diff-on');
+  document.getElementById('btn-rst-diff').classList.toggle('active');
+  if(document.body.classList.contains('rst-diff-on')) updateAllResetBadges();
+});
+
+/* ================================================================
+   INIT
+   ================================================================ */
+render();
+</script>
+
+<script>
+(function () {
+  var ph = document.getElementById('svg-placeholder');
+  if (!ph) return;
+  fetch('svg-loader.php', { credentials: 'same-origin' })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(function (svg) {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = svg;
+      var el = tmp.querySelector('svg');
+      if (el) ph.parentNode.replaceChild(el, ph);
+    })
+    .catch(function (e) { ph.textContent = 'Could not load clock tree.'; console.error(e); });
+})();
+</script>
+</body>
+</html>
